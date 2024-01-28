@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.36
+# v0.19.37
 
 using Markdown
 using InteractiveUtils
@@ -15,8 +15,7 @@ end
 begin
 	@quickactivate "2024GLConvIso"
 	using DelimitedFiles
-	using ERA5Reanalysis
-	using NASAPrecipitation
+	using GeoRegions
 	using NCDatasets
 	using PlutoUI
 
@@ -53,10 +52,10 @@ end
 
 # ╔═╡ 32c650df-ccd2-4adf-a3b7-56611fff1b46
 begin
-	coast = readdlm(datadir("GLB-i.txt"),comments=true,comment_char='#')
+	coast = readdlm(datadir("coast.cst"),comments=true)
 	x = coast[:,1]
 	y = coast[:,2]
-	md"Loading coastlines data ..."
+	md"Preloading coastline data"
 end
 
 # ╔═╡ eb7a010b-5e93-48c5-8e0a-698fbd70cda4
@@ -79,19 +78,10 @@ geo = GeoRegion("OTREC")
 geo_large = GeoRegion("OTREC_LRG")
 
 # ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
-begin
-	lsd = getLandSea(
-		geo,path=datadir(),savelsd=true,returnlsd=true,
-		smooth=true,σlon=30,σlat=30
-	)
-end
+lsd = getLandSea(geo,path=datadir(),returnlsd=true)
 
 # ╔═╡ 76e35851-71a0-4b89-98bb-9a82bf34bd34
-begin
-	lsd_large = getLandSea(
-		geo_large,path=datadir(),savelsd=true,returnlsd=true,
-	)
-end
+lsd_large = getLandSea(geo_large,path=datadir(),returnlsd=true)
 
 # ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
 md"
@@ -189,9 +179,9 @@ begin
 		ylocator=-15:15:30,yminorlocator=-30:5:45,yticklabels=[]
 	)
 
-	fig.colorbar(c,label="Topographic Height/ km")
-	fig.savefig(plotsdir("fig2-otrecdomain.png"),transparent=false,dpi=400)
-	load(plotsdir("fig2-otrecdomain.png"))
+	fig.colorbar(c,label="Topographic Height/ km",length=0.8)
+	fig.savefig(projectdir("figures","fig2-domain.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig2-domain.png"))
 end
 
 # ╔═╡ Cell order:
