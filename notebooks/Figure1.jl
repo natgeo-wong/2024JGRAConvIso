@@ -155,8 +155,8 @@ begin
 
 	fig.colorbar(c1,locator=400:50:800,minorlocator=(5:0.5:15).*50,label=L"$p_\omega$ / hPa",length=0.7,rows=(1,6))
 	fig.colorbar(c2,locator=[-600,-150],label=L"$\delta_H$",ticklabels=[L"-",L"+"],rows=(7,9))
-	fig.savefig(plotsdir("fig1-pomegaclimatology.png"),transparent=false,dpi=400)
-	load(plotsdir("fig1-pomegaclimatology.png"))
+	fig.savefig(projectdir("figures","fig1-pomegaclimatology.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig1-pomegaclimatology.png"))
 end
 
 # ╔═╡ cc7368e3-9591-4bf6-a907-67c585106a8c
@@ -175,8 +175,8 @@ begin
 		ax.format(ylim=(0,12),grid=false,xticks="null",yticks="null")
 	end
 
-	ftmp.savefig(plotsdir("fig1-clouds.png"),transparent=true,dpi=400)
-	load(plotsdir("fig1-clouds.png"))
+	ftmp.savefig(projectdir("figures","fig1-clouds.png"),transparent=true,dpi=400)
+	load(projectdir("figures","fig1-clouds.png"))
 end
 
 # ╔═╡ Cell order:
