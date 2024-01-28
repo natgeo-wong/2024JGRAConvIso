@@ -6,4 +6,4 @@ TRP, GLB, 30, 0, -30, 360, Tropics
 
 OTREC, GLB, 15.0, 270.0, 0.0, 285.0, OTREC-Survey-Region
 OTREC_WRF, TRP, 30, 255, -15, 300, OTREC-WRF-Domain
-OTREC_LRG, GLB, 45, 240, -30, 315, OTREC-Large-Domin
+OTREC_LRG, GLB, 35, 250, -20, 305, OTREC-Large-Domin
