@@ -88,7 +88,7 @@ SMOWHDO(x :: Real = 1.) = x * 1.5576e-4
 
 function loadflightpaths()
     data = Vector{Array{Float64,2}}(undef,22)
-    fvec = glob("OTRECrf*",datadir("flightpaths"))
+    fvec = glob("OTRECrf*",srcdir("flightpaths"))
     for ii in 1 : length(fvec)
         data[ii] = readdlm(fvec[ii],',')
     end
