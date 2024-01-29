@@ -17,6 +17,7 @@ begin
 	using Dates
 	using ERA5Reanalysis
 	using NCDatasets
+	using Printf
 	using Statistics
 	
 	using ImageShow, PNGFiles
@@ -50,9 +51,105 @@ ereg = ERA5Region(GeoRegion("OTREC"))
 # ╔═╡ 65a509df-0943-4054-ae0a-216e405aad48
 lsd = getLandSea(e5dy,ereg)
 
+# ╔═╡ a1007189-6c4d-4418-aefa-078c0090def5
+md"
+### B. Plotting functions and the like
+"
+
+# ╔═╡ 2c696d1a-efd3-4b41-bc25-d0c0e8ac2543
+function threshold!(
+	bin,num,prc;
+	numthresh = 5
+)
+
+	bin[num.<numthresh] .= 0
+	prc[num.<numthresh] .= 0
+	# num[num.<numthresh] .= 0
+
+	return
+	
+end
+
+# ╔═╡ 56109fca-661d-4594-87b4-677511437a2e
+function plotbin!(
+	axesnum,ii,
+	rainbin,wgtpbin,
+	iibin, iiprc, iinum,
+	lvls;
+	returncinfo = true
+)
+
+	c1 = axesnum[2*ii-1].pcolormesh(
+		rainbin,wgtpbin,(iibin./iiprc)',
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	c2 = axesnum[2*ii].pcolormesh(
+		rainbin,wgtpbin,iinum' ./ sum(iinum)*100,
+		cmap="fire",levels=0:10,extend="both"
+	)
+
+	ix = axesnum[2*ii-1].panel("l",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,(sum(iibin,dims=1)./sum(iiprc,dims=1))',
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],(sum(iibin,dims=2)./sum(iiprc,dims=2))',
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
+
+	ix = axesnum[2*ii].panel("r",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,sum(iinum,dims=1)' ./ sum(iinum)*100,
+		cmap="fire",levels=0:10,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],sum(iinum,dims=2)' ./ sum(iinum)*100,
+		cmap="fire",levels=0:10,extend="both"
+	)
+	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
+
+	if returncinfo
+		return c1,c2
+	else
+		return
+	end
+
+end
+
+# ╔═╡ b266abf5-d287-4ca0-945e-2c771529fd41
+function axesformat!(axesnum)
+
+	for ax in axesnum
+		ax.format(
+			ylabel=L"$p_\omega$ / hPa",
+			xlabel=L"Rainfall Rate / mm day$^{-1}$",
+			ylim=(950,100),xlim=(0,100),ylocator=200:200:800,xlocator=0:50:100
+		)
+	end
+	
+	axesnum[2].format(urtitle="(a) All Stations")
+	axesnum[4].format(urtitle="(b) Colombia")
+	axesnum[6].format(urtitle="(c) Costa Rica")
+	axesnum[8].format(urtitle="(d) San Andres")
+	axesnum[10].format(urtitle="(e) Buenaventura")
+	axesnum[10].text(-23,300,"Bahia Solano",fontsize=10)
+	axesnum[12].format(urtitle="(f) Quibdo")
+
+	return
+
+end
+
 # ╔═╡ 8927283a-c4e2-4c3a-b32f-850391eef9c7
 md"
-### B. Loading and Comparing Daily Station Data
+### C. Loading and Comparing Daily Station Data
 "
 
 # ╔═╡ f4597370-4bc8-4763-8030-3a4dc89533b6
@@ -68,6 +165,7 @@ begin
 	time  = time[it]
 	prcps = ds["prcps"][it,:]
 	δ18Oμ = ds["δ18Oμ"][it,:]
+	δHDOμ = ds["δ2Hμ"][it,:]
 	nstn = size(prcps,2)
 	close(ds)
 end
@@ -89,6 +187,66 @@ begin
 	eprc = zeros(length(rpnt),length(ppnt))
 	fprc = zeros(length(rpnt),length(ppnt))
 	md"Preallocation of arrays ..."
+end
+
+# ╔═╡ 3d3859f7-7c57-4bf4-b3d8-0125c10660cb
+function binning!(
+	binstn,numstn,prcstn,
+	rpnt, ppnt;
+	ID, days=0, iso = "HDO", bnum = 1
+)
+
+	iso = "$(iso)_"
+	stnstr = @sprintf("%02d",ID)
+
+	
+	geoname = "OTREC_STN$stnstr"
+	pwgt,prcp,hvyp = extract(geoname,iso,days)
+	nt = length(prcp)
+
+	for it = 1 : nt
+		if (prcp[it]>2.5) && !isnan(pwgt[it])
+			rind = argmin(abs.(prcp[it].-rpnt))
+			pind = argmin(abs.(pwgt[it].-ppnt))
+			numstn[rind,pind] += 1
+			binstn[rind,pind] += hvyp[it]
+			prcstn[rind,pind] += prcp[it]
+		end
+	end
+
+	for idy = 4 : (length(time)-3)
+
+		dt  = time[idy]; dayii = day(dt)
+		ids = read(e5dy,evar,ereg,dt,smooth=true,smoothtime=7,quiet=true)
+
+		prcps_ii = prcps[idy.+(-3:3),:]
+		δ18Oμ_ii = δ18Oμ[idy.+(-3:3),:]
+
+		lon = infody[ID,2]; ilon = argmin(abs.(lsd.lon.-lon))
+		lat = infody[ID,3]; ilat = argmin(abs.(lsd.lat.-lat))
+		prcpsii = prcps_ii[:,ID]; iNaN_prcp = .!isnan.(prcpsii)
+		δ18Oμii = δ18Oμ_ii[:,ID]; iNaN_δ18O = .!isnan.(δ18Oμii)
+		iNaN = iNaN_prcp .& iNaN_δ18O
+		if sum(iNaN) > thresholdNaN
+			prcpμii = mean(prcpsii[iNaN])
+			prcptot = sum(prcpsii[iNaN])
+			δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
+			pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+			if ismissing(pwwgtii); pwwgtii = NaN end
+	
+			if !isnan(prcpμii) && !isnan(pwwgtii)
+				rind = argmin(abs.(prcpμii.-rpnt))
+				pind = argmin(abs.(pwwgtii.-ppnt))
+				abin[rind,pind] += δ18Oμii; anum[rind,pind] += 1
+				bbin[rind,pind] += δ18Oμii; bnum[rind,pind] += 1
+				aprc[rind,pind] += prcptot; bprc[rind,pind] += prcptot
+			end
+		end
+
+	end
+
+	return
+
 end
 
 # ╔═╡ 492b98ea-e5d8-40e3-ae89-df68d183c100
@@ -243,12 +401,13 @@ begin
 
 	end
 
-	c3_1 = a3[1].pcolormesh(rbin,pbin,(abin./aprc)',cmap="viridis",levels=lvls,extend="both")
-	a3[3].pcolormesh(rbin,pbin,(fbin./fprc)',cmap="viridis",levels=lvls,extend="both")
-	a3[5].pcolormesh(rbin,pbin,(ebin./eprc)',cmap="viridis",levels=lvls,extend="both")
-	a3[7].pcolormesh(rbin,pbin,(bbin./bprc)',cmap="viridis",levels=lvls,extend="both")
-	a3[9].pcolormesh(rbin,pbin,(cbin./cprc)',cmap="viridis",levels=lvls,extend="both")
-	a3[11].pcolormesh(rbin,pbin,(dbin./dprc)',cmap="viridis",levels=lvls,extend="both")
+	c3_1,c3_2 = 
+	plotbin!(a3,1,rbin,pbin,abin,aprc,anum,-10:-1,returncinfo=true)
+	plotbin!(a3,2,rbin,pbin,fbin,fprc,fnum,-10:-1,returncinfo=true)
+	plotbin!(a3,3,rbin,pbin,ebin,eprc,enum,-10:-1,returncinfo=true)
+	plotbin!(a3,4,rbin,pbin,bbin,bprc,bnum,-10:-1,returncinfo=true)
+	plotbin!(a3,5,rbin,pbin,cbin,cprc,cnum,-10:-1,returncinfo=true)
+	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:-1,returncinfo=true)
 
 	anum[iszero.(anum)] .= NaN
 	bnum[iszero.(bnum)] .= NaN
@@ -256,28 +415,9 @@ begin
 	dnum[iszero.(dnum)] .= NaN
 	enum[iszero.(enum)] .= NaN
 	fnum[iszero.(fnum)] .= NaN
-	
-	c3_2 = a3[2].pcolormesh(rbin,pbin,anum',levels=0:5:50,extend="both")
-	a3[4].pcolormesh(rbin,pbin,fnum',levels=0:5:50,extend="both")
-	a3[6].pcolormesh(rbin,pbin,enum',levels=0:5:50,extend="both")
-	a3[8].pcolormesh(rbin,pbin,bnum',levels=0:5:50,extend="both")
-	a3[10].pcolormesh(rbin,pbin,cnum',levels=0:5:50,extend="both")
-	a3[12].pcolormesh(rbin,pbin,dnum',levels=0:5:50,extend="both")
 
-	a3[2].format(urtitle="(a) All Stations",suptitle="7-Day Moving Average")
-	a3[4].format(urtitle="(b) Colombia")
-	a3[6].format(urtitle="(c) Costa Rica")
-	a3[8].format(urtitle="(d) San Andres")
-	a3[10].format(urtitle="(e) Buenaventura")
-	a3[10].text(-23,300,"Bahia Solano",fontsize=10)
-	a3[12].format(urtitle="(f) Quibdo")
-	for ax in a3
-		ax.format(
-			ylabel=L"$p_\omega$ / hPa",
-			xlabel=L"Rainfall Rate / mm day$^{-1}$",
-			ylim=(950,100),xlim=(0,100),ylocator=200:200:800,xlocator=0:50:100
-		)
-	end
+	axesformat!(a3)
+	a3[1].format(suptitle="7-Day WRF Moving Average")
 	f3.colorbar(c3_1,label=L"$\delta^{18}$O / $\perthousand$",locator=-70:2:0,minorlocator=-90:0,row=[1])
 	f3.colorbar(c3_2,label="Number of Observations",row=[2])
 
@@ -294,9 +434,14 @@ end
 # ╟─afb4338b-4f4d-406f-af61-630ed6f85297
 # ╟─21894078-46cc-43c8-a465-047d5318187c
 # ╟─65a509df-0943-4054-ae0a-216e405aad48
+# ╟─a1007189-6c4d-4418-aefa-078c0090def5
+# ╠═3d3859f7-7c57-4bf4-b3d8-0125c10660cb
+# ╠═2c696d1a-efd3-4b41-bc25-d0c0e8ac2543
+# ╠═56109fca-661d-4594-87b4-677511437a2e
+# ╟─b266abf5-d287-4ca0-945e-2c771529fd41
 # ╟─8927283a-c4e2-4c3a-b32f-850391eef9c7
 # ╟─f4597370-4bc8-4763-8030-3a4dc89533b6
-# ╟─2c4f6363-7b5a-40a0-aa47-251c53ae7367
+# ╠═2c4f6363-7b5a-40a0-aa47-251c53ae7367
 # ╟─b2dc480b-b6fc-471a-9724-1034415f4cfc
 # ╟─492b98ea-e5d8-40e3-ae89-df68d183c100
 # ╠═189bb0b7-d3ae-4aa7-b9e3-1ee5dcc63e4d
