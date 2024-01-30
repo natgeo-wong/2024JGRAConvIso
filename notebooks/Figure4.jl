@@ -120,8 +120,8 @@ function extract(geoname,iso,days)
 		"wrf","processed",
 		"$geoname-p_wwgt-daily-smooth_$(dystr)days.nc"
 	))
-	pwgt = dsp["p_wwgt"][:] / 100
-	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
+	pwgt = dsp["σ_wwgt"][:]
+	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
 	return pwgt,prcp,advc,hvyp,hvya,divg
@@ -257,7 +257,7 @@ function axesformat!(axesnum)
 
 	for ax in axesnum
 		ax.format(
-			ylim=(1000,0),xlim=(0,200),xlocator=0:100:200,ylabel=L"$p_\omega$ / hPa",
+			ylim=(1,0),xlim=(0,200),xlocator=0:100:200,ylabel=L"$\sigma_\omega$",
 			xlabel=L"$P + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$"
 		)
 	end
@@ -266,17 +266,17 @@ function axesformat!(axesnum)
 	axesnum[2].format(ultitle="(a) Colombia")
 	axesnum[4].format(ultitle="(b) San Andres")
 	axesnum[6].format(ultitle="(c) Buenaventura")
-	axesnum[6].text(72,220,"Bahia Solano",fontsize=10)
+	axesnum[6].text(72,0.220,"Bahia Solano",fontsize=10)
 	axesnum[8].format(ultitle="(d) Quibdo")
 	axesnum[10].format(ultitle="(e) Costa Rica")
 	axesnum[12].format(ultitle="(f) EEFMB")
-	axesnum[12].text(64,220,"ADMQ",fontsize=10)
-	axesnum[12].text(64,320,"CGFI",fontsize=10)
+	axesnum[12].text(64,0.220,"ADMQ",fontsize=10)
+	axesnum[12].text(64,0.320,"CGFI",fontsize=10)
 	axesnum[14].format(ultitle="(g) Cahuita")
-	axesnum[14].text(74,220,"Bataan",fontsize=10)
-	axesnum[14].text(74,320,"Limon",fontsize=10)
+	axesnum[14].text(74,0.220,"Bataan",fontsize=10)
+	axesnum[14].text(74,0.320,"Limon",fontsize=10)
 	axesnum[16].format(ultitle="(h) Liberia")
-	axesnum[16].text(73,220,"OSA",fontsize=10)
+	axesnum[16].text(73,0.220,"OSA",fontsize=10)
 
 	return
 
@@ -285,7 +285,7 @@ end
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
 	rbin = 0 : 20 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
-	pbin = 0 : 50 : 1000; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
+	pbin = 0 : 0.050 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
 	bbin = zeros(nr,np); bnum = zeros(nr,np); bprc = zeros(nr,np)
@@ -367,10 +367,10 @@ end
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
-# ╠═4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
-# ╠═1343fbae-0ebd-4237-8273-0ebab8325424
-# ╠═2fd946e2-bf3e-406f-9a19-5aa72b5d1640
+# ╟─1343fbae-0ebd-4237-8273-0ebab8325424
+# ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 # ╟─b6500812-fd5e-4842-8855-655822d170f4
