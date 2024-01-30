@@ -53,7 +53,7 @@ function extract(geoname,iso,days)
 	dhqdp = ds["$(iso)dhqdp"][:,:]
 	close(ds)
 
-	return p,hdq,dhqdp * 1e6
+	return p,hdq,dhqdp * 1e2
 	
 end
 
@@ -94,8 +94,9 @@ function plotdqdp(
 			end
 		end
 	end
-	c1 = axes[2*ii].pcolormesh(binplt,1:50,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=5:5:95)
-	c2 = axes[2*ii-1].pcolormesh(binplt./10,1:50,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=5:5:95)
+	lvls = [0,1,sqrt(2),2,2*sqrt(2.5),5,7*sqrt(2),10,10*sqrt(2),20,20*sqrt(2.5),50]
+	c1 = axes[2*ii-1].pcolormesh(binplt,1:50,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=lvls)
+	c2 = axes[2*ii].pcolormesh(binplt./10,1:50,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=lvls)
 
 	if cinfo
 		return c1,c2
@@ -110,32 +111,29 @@ function axesformat!(axes)
 
 	for ax in axes
 		ax.format(
-			xlim=(-2,10),ylim=(1,50),ylabel="Level",
-			xlabel=L"$\partial_p(q_h/q)$ / 10$^{-6}$ Pa$^{-1}$",
+			ylim=(1,50),ylabel="Model Level",
+			xlabel=L"$\partial_p(q_h/q)$ / $\perthousand$ hPa$^{-1}$",
 			suptitle="7-Day Moving Average"
 		)
 	end
 
-	for ii = 1 : 8
-		axes[2*ii].format(xlim=(-2,10),lrtitle="HDO")
-		axes[2*ii-1].format(xlim=(-2,10)./10,lrtitle="O18")
+	for ii = 1 : 6
+		axes[2*ii-1].format(xlim=(-0.2,1.2),lrtitle="HDO",xlocator=-0.5:0.5:1.5)
+		axes[2*ii].format(xlim=(-0.2,1.2)./10,lrtitle="O18",xlocator=-0.05:0.05:.15)
 	end
 
-	axes[2].format(ultitle="(a) All Stations")
-	axes[2].format(ultitle="(a) Colombia")
-	axes[4].format(ultitle="(b) San Andres")
-	axes[6].format(ultitle="(c) Buenaventura")
-	axes[6].text(0.48,39.5,"Bahia Solano",fontsize=10)
-	axes[8].format(ultitle="(d) Quibdo")
-	axes[10].format(ultitle="(e) Costa Rica")
-	axes[12].format(ultitle="(f) EEFMB")
-	axes[12].text(0.41,39.5,"ADMQ",fontsize=10)
-	axes[12].text(0.41,34.5,"CGFI",fontsize=10)
-	axes[14].format(ultitle="(g) Cahuita")
-	axes[14].text(0.48,39.5,"Bataan",fontsize=10)
-	axes[14].text(0.48,34.5,"Limon",fontsize=10)
-	axes[16].format(ultitle="(h) Liberia")
-	axes[16].text(0.48,39.5,"OSA",fontsize=10)
+	axes[2].format(ultitle="(a) San Andres")
+	axes[4].format(ultitle="(b) Buenaventura")
+	axes[4].text(0.032,39.5,"Bahia Solano",fontsize=10)
+	axes[6].format(ultitle="(c) Quibdo")
+	axes[8].format(ultitle="(d) EEFMB")
+	axes[8].text(0.032,39.5,"ADMQ",fontsize=10)
+	axes[8].text(0.032,34.5,"CGFI",fontsize=10)
+	axes[10].format(ultitle="(e) Cahuita")
+	axes[10].text(0.032,39.5,"Bataan",fontsize=10)
+	axes[10].text(0.032,34.5,"Limon",fontsize=10)
+	axes[12].format(ultitle="(f) Liberia")
+	axes[12].text(0.024,39.5,"OSA",fontsize=10)
 
 	return
 
@@ -144,23 +142,21 @@ end
 # ╔═╡ 8c211620-d632-4f23-85f5-a702faf82270
 begin
 	pplt.close(); fig,axs = pplt.subplots(
-		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],aspect=0.5,axwidth=0.75,
-		wspace=[0,1.5,0,1.5,0,1.5,0]
+		[[2,1,4,3,6,5],[8,7,10,9,12,11]],aspect=0.5,axwidth=0.75,
+		wspace=[0,1.5,0,1.5,0]
 	)
 
-	c1,_ = 
-	plotdqdp(axs,1,-2.5:0.5:15,ID=1:4,box=true,bnum=4,days=7,cinfo=true)
-	plotdqdp(axs,2,-2.5:0.5:15,ID=1,box=true,bnum=4,days=7)
-	plotdqdp(axs,3,-2.5:0.5:15,ID=3:4,box=true,bnum=4,days=7)
-	plotdqdp(axs,4,-2.5:0.5:15,ID=2,box=true,bnum=4,days=7)
-	plotdqdp(axs,5,-2.5:0.5:15,ID=5:12,box=true,bnum=4,days=7)
-	plotdqdp(axs,6,-2.5:0.5:15,ID=5:7,box=true,bnum=4,days=7)
-	plotdqdp(axs,7,-2.5:0.5:15,ID=9:11,box=true,bnum=4,days=7)
-	plotdqdp(axs,8,-2.5:0.5:15,ID=[8,12],box=true,bnum=4,days=7)
+	c1,_ =
+	plotdqdp(axs,1,-1:0.05:1.5,ID=1,box=true,bnum=4,days=7,cinfo=true)
+	plotdqdp(axs,2,-1:0.05:1.5,ID=3:4,box=true,bnum=4,days=7)
+	plotdqdp(axs,3,-1:0.05:1.5,ID=2,box=true,bnum=4,days=7)
+	plotdqdp(axs,4,-1:0.05:1.5,ID=5:7,box=true,bnum=4,days=7)
+	plotdqdp(axs,5,-1:0.05:1.5,ID=9:11,box=true,bnum=4,days=7)
+	plotdqdp(axs,6,-1:0.05:1.5,ID=[8,12],box=true,bnum=4,days=7)
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,length=0.75)
+	fig.colorbar(c1,length=0.75,locator=[0,1,2,5,10,20,50],label="Probability / %")
 	fig.savefig(projectdir("figures","fig5-dhqdp.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig5-dhqdp.png"))
 end
