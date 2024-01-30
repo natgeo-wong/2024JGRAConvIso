@@ -76,45 +76,55 @@ function plotbin!(
 	rainbin,wgtpbin,
 	iibin, iiprc, iinum,
 	lvls;
-	returncinfo = true
+	returncinfo = true,
+	doalpha = false
 )
 
+	tmpbin = sum(iibin,dims=1)
+	tmpprc = sum(iiprc,dims=1)
+	tmpnum = sum(iinum,dims=1)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii-1].panel("l",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,(tmpbin./tmpprc)',
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	ix = axesnum[2*ii].panel("r",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	tmpbin = sum(iibin,dims=2)
+	tmpprc = sum(iiprc,dims=2)
+	tmpnum = sum(iinum,dims=2)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],(tmpbin./tmpprc)',
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	threshold!(iibin,iinum,iiprc)
 	c1 = axesnum[2*ii-1].pcolormesh(
 		rainbin,wgtpbin,(iibin./iiprc)',
 		cmap="viridis",levels=lvls,extend="both"
 	)
 	c2 = axesnum[2*ii].pcolormesh(
 		rainbin,wgtpbin,iinum',
-		cmap="fire",levels=0:10:100,extend="both"
+		cmap="fire",levels=0:5:50,extend="both"
 	)
-
-	ix = axesnum[2*ii-1].panel("l",width="0.6em",space=0)
-	ix.pcolormesh(
-		[0,1],wgtpbin,(sum(iibin,dims=1)./sum(iiprc,dims=1))',
-		cmap="viridis",levels=lvls,extend="both"
-	)
-	ix.format(xlocator=[])
-
-	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
-	ix.pcolormesh(
-		rainbin,[0,1],(sum(iibin,dims=2)./sum(iiprc,dims=2))',
-		cmap="viridis",levels=lvls,extend="both"
-	)
-	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
-
-	ix = axesnum[2*ii].panel("r",width="0.6em",space=0)
-	ix.pcolormesh(
-		[0,1],wgtpbin,sum(iinum,dims=1)',
-		cmap="fire",levels=0:10:100,extend="both"
-	)
-	ix.format(xlocator=[])
-
-	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
-	ix.pcolormesh(
-		rainbin,[0,1],sum(iinum,dims=2)',
-		cmap="fire",levels=0:10:100,extend="both"
-	)
-	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
 
 	if returncinfo
 		return c1,c2
@@ -402,12 +412,12 @@ begin
 	end
 
 	c3_1,c3_2 = 
-	plotbin!(a3,1,rbin,pbin,abin,aprc,anum,-10:0,returncinfo=true)
-	plotbin!(a3,2,rbin,pbin,fbin,fprc,fnum,-10:0,returncinfo=true)
-	plotbin!(a3,3,rbin,pbin,ebin,eprc,enum,-10:0,returncinfo=true)
-	plotbin!(a3,4,rbin,pbin,bbin,bprc,bnum,-10:0,returncinfo=true)
-	plotbin!(a3,5,rbin,pbin,cbin,cprc,cnum,-10:0,returncinfo=true)
-	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:0,returncinfo=true)
+	plotbin!(a3,1,rbin,pbin,abin,aprc,anum,-10:-2,returncinfo=true)
+	plotbin!(a3,2,rbin,pbin,fbin,fprc,fnum,-10:-2,returncinfo=true)
+	plotbin!(a3,3,rbin,pbin,ebin,eprc,enum,-10:-2,returncinfo=true)
+	plotbin!(a3,4,rbin,pbin,bbin,bprc,bnum,-10:-2,returncinfo=true)
+	plotbin!(a3,5,rbin,pbin,cbin,cprc,cnum,-10:-2,returncinfo=true)
+	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:-2,returncinfo=true)
 
 	axesformat!(a3)
 	a3[1].format(suptitle="7-Day WRF Moving Average")
@@ -430,12 +440,12 @@ end
 # ╟─a1007189-6c4d-4418-aefa-078c0090def5
 # ╟─3d3859f7-7c57-4bf4-b3d8-0125c10660cb
 # ╟─2c696d1a-efd3-4b41-bc25-d0c0e8ac2543
-# ╟─56109fca-661d-4594-87b4-677511437a2e
+# ╠═56109fca-661d-4594-87b4-677511437a2e
 # ╟─b266abf5-d287-4ca0-945e-2c771529fd41
 # ╟─8927283a-c4e2-4c3a-b32f-850391eef9c7
 # ╟─f4597370-4bc8-4763-8030-3a4dc89533b6
 # ╟─2c4f6363-7b5a-40a0-aa47-251c53ae7367
 # ╟─b2dc480b-b6fc-471a-9724-1034415f4cfc
 # ╟─492b98ea-e5d8-40e3-ae89-df68d183c100
-# ╠═189bb0b7-d3ae-4aa7-b9e3-1ee5dcc63e4d
-# ╠═bbcf49bb-4be0-463d-87ea-83f674a5729d
+# ╟─189bb0b7-d3ae-4aa7-b9e3-1ee5dcc63e4d
+# ╟─bbcf49bb-4be0-463d-87ea-83f674a5729d

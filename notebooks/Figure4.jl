@@ -341,14 +341,14 @@ begin
 	)
 
 	c1_1,c1_2 = 
-	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-22:-8,returncinfo=true)
-	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-22:-8)
-	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-22:-8)
-	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-22:-8)
-	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-22:-8)
-	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-22:-8)
-	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-22:-8)
-	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-22:-8)
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-22:-10,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-22:-10)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-22:-10)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-22:-10)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-22:-10)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-22:-10)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-22:-10)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-22:-10)
 
 	axesformat!(a1)
 	a1[1].format(suptitle="7-Day WRF Moving Average")
