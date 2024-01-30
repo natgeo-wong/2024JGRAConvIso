@@ -143,7 +143,7 @@ end
 begin
 	pplt.close(); fig,axs = pplt.subplots(
 		[[2,1,4,3,6,5],[8,7,10,9,12,11]],aspect=0.5,axwidth=0.75,
-		wspace=[0,1.5,0,1.5,0]
+		wspace=[0,2,0,2,0]
 	)
 
 	c1,_ =
