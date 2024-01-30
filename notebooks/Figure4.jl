@@ -95,6 +95,27 @@ function extract(geoname,iso,days)
 	prcp = smooth(dropdims(sum(reshape(ds["P"][:],8,:),dims=1),dims=1),days)
 	close(ds)
 
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-$(iso)∇decompose.nc"
+	))
+	hvya = smooth(dropdims(mean(reshape(ds["$(iso)ADV"][:],8,:),dims=1),dims=1),days) * 86400
+	close(ds)
+
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-∇decompose.nc"
+	))
+	advc = smooth(dropdims(mean(reshape(ds["ADV"][:],8,:),dims=1),dims=1),days) * 86400
+	close(ds)
+
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-∇decompose.nc"
+	))
+	divg = smooth(dropdims(mean(reshape(ds["DIV"][:],8,:),dims=1),dims=1),days) * 86400
+	close(ds)
+
 	dsp = NCDataset(datadir(
 		"wrf","processed",
 		"$geoname-p_wwgt-daily-smooth_$(dystr)days.nc"
@@ -103,7 +124,7 @@ function extract(geoname,iso,days)
 	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
 	close(dsp)
 
-	return pwgt,prcp,hvyp
+	return pwgt,prcp,advc,hvyp,hvya,divg
 	
 end
 
@@ -121,31 +142,31 @@ function binning!(
 		for ibox = 1 : bnum
 			boxstr = @sprintf("%02d",ibox)
 			geoname = "OTREC_STN$(stnstr)_$(boxstr)"
-			pwgt,prcp,hvyp = extract(geoname,iso,days)
+			pwgt,prcp,advc,hvyp,hvya,divg = extract(geoname,iso,days)
 			nt = length(prcp)
 		
 			for it = 1 : nt
-				if (prcp[it]>2.5) && !isnan(pwgt[it])
-					rind = argmin(abs.(prcp[it].-rpnt))
+				if (prcp[it]>2.5) && !isnan(pwgt[it]) && (advc[it]>0) && (divg[it]<0)
+					rind = argmin(abs.(prcp[it]+advc[it].-rpnt))
 					pind = argmin(abs.(pwgt[it].-ppnt))
 					numstn[rind,pind] += 1
-					binstn[rind,pind] += hvyp[it]
-					prcstn[rind,pind] += prcp[it]
+					binstn[rind,pind] += hvyp[it] + hvya[it]
+					prcstn[rind,pind] += prcp[it] + advc[it]
 				end
 			end
 		end
 	else
 		geoname = "OTREC_STN$stnstr"
-		pwgt,prcp,hvyp = extract(geoname,iso,days)
+		pwgt,prcp,advc,hvyp,hvya,divg = extract(geoname,iso,days)
 		nt = length(prcp)
 	
 		for it = 1 : nt
-			if (prcp[it]>2.5) && !isnan(pwgt[it])
+			if (prcp[it]>2.5) && (advc[it]>0) && (divg[it]<0) && !isnan(pwgt[it])
 				rind = argmin(abs.(prcp[it].-rpnt))
 				pind = argmin(abs.(pwgt[it].-ppnt))
 				numstn[rind,pind] += 1
-				binstn[rind,pind] += hvyp[it]
-				prcstn[rind,pind] += prcp[it]
+				binstn[rind,pind] += hvyp[it] + hvya[it]
+				prcstn[rind,pind] += prcp[it] + advc[it]
 			end
 		end
 	end
@@ -154,7 +175,7 @@ function binning!(
 
 end
 
-# ╔═╡ 42c325e3-d1df-4e09-8d59-8e1505210c43
+# ╔═╡ 9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 function threshold!(
 	bin,num,prc;
 	numthresh = 5
@@ -162,57 +183,66 @@ function threshold!(
 
 	bin[num.<numthresh] .= 0
 	prc[num.<numthresh] .= 0
-	# num[num.<numthresh] .= 0
 
 	return
 	
 end
 
-# ╔═╡ 7e66a747-056c-445e-a021-0d919ddc26bb
+# ╔═╡ 6fc8d69a-81d1-47c4-8609-8ec7914bc935
 function plotbin!(
 	axesnum,ii,
 	rainbin,wgtpbin,
 	iibin, iiprc, iinum,
 	lvls;
-	returncinfo = true
+	returncinfo = true,
+	doalpha = false
 )
 
+	tmpbin = sum(iibin,dims=1)
+	tmpprc = sum(iiprc,dims=1)
+	tmpnum = sum(iinum,dims=1)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii].panel("l",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,(tmpbin./tmpprc.-1)' * 1000,
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	ix = axesnum[2*ii-1].panel("r",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	tmpbin = sum(iibin,dims=2)
+	tmpprc = sum(iiprc,dims=2)
+	tmpnum = sum(iinum,dims=2)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],(tmpbin./tmpprc.-1)' * 1000,
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	threshold!(iibin,iinum,iiprc)
 	c1 = axesnum[2*ii].pcolormesh(
 		rainbin,wgtpbin,(iibin./iiprc .- 1)' * 1000,
 		cmap="viridis",levels=lvls,extend="both"
 	)
 	c2 = axesnum[2*ii-1].pcolormesh(
-		rainbin,wgtpbin,iinum' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
+		rainbin,wgtpbin,iinum',
+		cmap="fire",levels=0:5:50,extend="both"
 	)
-
-	ix = axesnum[2*ii].panel("l",width="0.6em",space=0)
-	ix.pcolormesh(
-		[0,1],wgtpbin,(sum(iibin,dims=1)./sum(iiprc,dims=1).-1)' * 1000,
-		cmap="viridis",levels=lvls,extend="both"
-	)
-	ix.format(xlocator=[])
-
-	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
-	ix.pcolormesh(
-		rainbin,[0,1],(sum(iibin,dims=2)./sum(iiprc,dims=2).-1)' * 1000,
-		cmap="viridis",levels=lvls,extend="both"
-	)
-	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
-
-	ix = axesnum[2*ii-1].panel("r",width="0.6em",space=0)
-	ix.pcolormesh(
-		[0,1],wgtpbin,sum(iinum,dims=1)' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
-	)
-	ix.format(xlocator=[])
-
-	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
-	ix.pcolormesh(
-		rainbin,[0,1],sum(iinum,dims=2)' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
-	)
-	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
 
 	if returncinfo
 		return c1,c2
@@ -222,13 +252,13 @@ function plotbin!(
 
 end
 
-# ╔═╡ 3bb9d01b-b214-44b1-975e-fcab56d8eb99
+# ╔═╡ 1343fbae-0ebd-4237-8273-0ebab8325424
 function axesformat!(axesnum)
 
 	for ax in axesnum
 		ax.format(
-			ylim=(1000,0),xlim=(0,60),xlocator=0:25:100,ylabel=L"$p_\omega$ / hPa",
-			xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$"
+			ylim=(1000,0),xlim=(0,200),xlocator=0:100:200,ylabel=L"$p_\omega$ / hPa",
+			xlabel=L"$P + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$"
 		)
 	end
 
@@ -236,17 +266,17 @@ function axesformat!(axesnum)
 	axesnum[2].format(ultitle="(a) Colombia")
 	axesnum[4].format(ultitle="(b) San Andres")
 	axesnum[6].format(ultitle="(c) Buenaventura")
-	axesnum[6].text(22,220,"Bahia Solano",fontsize=10)
+	axesnum[6].text(72,220,"Bahia Solano",fontsize=10)
 	axesnum[8].format(ultitle="(d) Quibdo")
 	axesnum[10].format(ultitle="(e) Costa Rica")
 	axesnum[12].format(ultitle="(f) EEFMB")
-	axesnum[12].text(18.5,220,"ADMQ",fontsize=10)
-	axesnum[12].text(18.5,320,"CGFI",fontsize=10)
+	axesnum[12].text(64,220,"ADMQ",fontsize=10)
+	axesnum[12].text(64,320,"CGFI",fontsize=10)
 	axesnum[14].format(ultitle="(g) Cahuita")
-	axesnum[14].text(22,220,"Bataan",fontsize=10)
-	axesnum[14].text(22,320,"Limon",fontsize=10)
+	axesnum[14].text(74,220,"Bataan",fontsize=10)
+	axesnum[14].text(74,320,"Limon",fontsize=10)
 	axesnum[16].format(ultitle="(h) Liberia")
-	axesnum[16].text(22,220,"OSA",fontsize=10)
+	axesnum[16].text(73,220,"OSA",fontsize=10)
 
 	return
 
@@ -254,7 +284,7 @@ end
 
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
-	rbin = 0 : 5 : 200; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
+	rbin = 0 : 20 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
 	pbin = 0 : 50 : 1000; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
@@ -269,7 +299,7 @@ begin
 	md"Preallocation of arrays ..."
 end
 
-# ╔═╡ c57ae725-3056-481c-a004-a916192744be
+# ╔═╡ b6500812-fd5e-4842-8855-655822d170f4
 # ╠═╡ show_logs = false
 begin
 	abin .= 0; aprc .= 0; anum .= 0
@@ -304,40 +334,30 @@ begin
 	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
 	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
 	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
-
-	threshold!(abin,anum,aprc)
-	threshold!(bbin,bnum,bprc)
-	threshold!(cbin,cnum,cprc)
-	threshold!(dbin,dnum,dprc)
-	threshold!(ebin,enum,eprc)
-	threshold!(fbin,fnum,fprc)
-	threshold!(gbin,gnum,gprc)
-	threshold!(hbin,hnum,hprc)
-	threshold!(ibin,inum,iprc)
-
-	pplt.close(); f2,a2 = pplt.subplots(
+	
+	pplt.close(); f1,a1 = pplt.subplots(
 		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
 		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
 	)
 
-	c2_1,c2_2 = 
-	plotbin!(a2,1,rbin,pbin,hbin,hprc,hnum,-13:0.5:-7,returncinfo=true)
-	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-13:0.5:-7)
-	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-13:0.5:-7)
-	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-13:0.5:-7)
-	plotbin!(a2,5,rbin,pbin,ibin,iprc,inum,-13:0.5:-7)
-	plotbin!(a2,6,rbin,pbin,ebin,eprc,enum,-13:0.5:-7)
-	plotbin!(a2,7,rbin,pbin,fbin,fprc,fnum,-13:0.5:-7)
-	plotbin!(a2,8,rbin,pbin,gbin,gprc,gnum,-13:0.5:-7)
+	c1_1,c1_2 = 
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-22:-8,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-22:-8)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-22:-8)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-22:-8)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-22:-8)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-22:-8)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-22:-8)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-22:-8)
 
-	axesformat!(a2)
-	a2[1].format(suptitle="7-Day WRF Moving Average")
+	axesformat!(a1)
+	a1[1].format(suptitle="7-Day WRF Moving Average")
+
+	f1.colorbar(c1_1,loc="r",rows=1,locator=-22:2:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
+	f1.colorbar(c1_2,loc="r",rows=2,locator=0:10:50,label="Number of Data Points")
 	
-	f2.colorbar(c2_1,loc="r",rows=1,locator=-15:-7,label=L"$\delta^{18}$O / $\perthousand$")
-	f2.colorbar(c2_2,loc="r",rows=2,locator=0:2:10,label="Probability Density / %")
-	
-	f2.savefig(projectdir("figures","fig4-wrfdepletion.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig4-wrfdepletion.png"))
+	f1.savefig(projectdir("figures","fig4-wrfadvec.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig4-wrfadvec.png"))
 end
 
 # ╔═╡ Cell order:
@@ -347,10 +367,10 @@ end
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
-# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
-# ╟─42c325e3-d1df-4e09-8d59-8e1505210c43
-# ╟─7e66a747-056c-445e-a021-0d919ddc26bb
-# ╟─3bb9d01b-b214-44b1-975e-fcab56d8eb99
-# ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╠═c57ae725-3056-481c-a004-a916192744be
+# ╠═4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
+# ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
+# ╠═1343fbae-0ebd-4237-8273-0ebab8325424
+# ╠═2fd946e2-bf3e-406f-9a19-5aa72b5d1640
+# ╟─b6500812-fd5e-4842-8855-655822d170f4

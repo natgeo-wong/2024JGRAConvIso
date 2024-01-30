@@ -84,8 +84,8 @@ function plotbin!(
 		cmap="viridis",levels=lvls,extend="both"
 	)
 	c2 = axesnum[2*ii].pcolormesh(
-		rainbin,wgtpbin,iinum' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
+		rainbin,wgtpbin,iinum',
+		cmap="fire",levels=0:10:100,extend="both"
 	)
 
 	ix = axesnum[2*ii-1].panel("l",width="0.6em",space=0)
@@ -104,15 +104,15 @@ function plotbin!(
 
 	ix = axesnum[2*ii].panel("r",width="0.6em",space=0)
 	ix.pcolormesh(
-		[0,1],wgtpbin,sum(iinum,dims=1)' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
+		[0,1],wgtpbin,sum(iinum,dims=1)',
+		cmap="fire",levels=0:10:100,extend="both"
 	)
 	ix.format(xlocator=[])
 
 	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
 	ix.pcolormesh(
-		rainbin,[0,1],sum(iinum,dims=2)' ./ sum(iinum)*100,
-		cmap="fire",levels=0:10,extend="both"
+		rainbin,[0,1],sum(iinum,dims=2)',
+		cmap="fire",levels=0:10:100,extend="both"
 	)
 	ix.format(ylocator=[],xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$")
 
@@ -402,19 +402,12 @@ begin
 	end
 
 	c3_1,c3_2 = 
-	plotbin!(a3,1,rbin,pbin,abin,aprc,anum,-10:-1,returncinfo=true)
-	plotbin!(a3,2,rbin,pbin,fbin,fprc,fnum,-10:-1,returncinfo=true)
-	plotbin!(a3,3,rbin,pbin,ebin,eprc,enum,-10:-1,returncinfo=true)
-	plotbin!(a3,4,rbin,pbin,bbin,bprc,bnum,-10:-1,returncinfo=true)
-	plotbin!(a3,5,rbin,pbin,cbin,cprc,cnum,-10:-1,returncinfo=true)
-	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:-1,returncinfo=true)
-
-	anum[iszero.(anum)] .= NaN
-	bnum[iszero.(bnum)] .= NaN
-	cnum[iszero.(cnum)] .= NaN
-	dnum[iszero.(dnum)] .= NaN
-	enum[iszero.(enum)] .= NaN
-	fnum[iszero.(fnum)] .= NaN
+	plotbin!(a3,1,rbin,pbin,abin,aprc,anum,-10:0,returncinfo=true)
+	plotbin!(a3,2,rbin,pbin,fbin,fprc,fnum,-10:0,returncinfo=true)
+	plotbin!(a3,3,rbin,pbin,ebin,eprc,enum,-10:0,returncinfo=true)
+	plotbin!(a3,4,rbin,pbin,bbin,bprc,bnum,-10:0,returncinfo=true)
+	plotbin!(a3,5,rbin,pbin,cbin,cprc,cnum,-10:0,returncinfo=true)
+	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:0,returncinfo=true)
 
 	axesformat!(a3)
 	a3[1].format(suptitle="7-Day WRF Moving Average")
@@ -435,14 +428,14 @@ end
 # ╟─21894078-46cc-43c8-a465-047d5318187c
 # ╟─65a509df-0943-4054-ae0a-216e405aad48
 # ╟─a1007189-6c4d-4418-aefa-078c0090def5
-# ╠═3d3859f7-7c57-4bf4-b3d8-0125c10660cb
-# ╠═2c696d1a-efd3-4b41-bc25-d0c0e8ac2543
-# ╠═56109fca-661d-4594-87b4-677511437a2e
+# ╟─3d3859f7-7c57-4bf4-b3d8-0125c10660cb
+# ╟─2c696d1a-efd3-4b41-bc25-d0c0e8ac2543
+# ╟─56109fca-661d-4594-87b4-677511437a2e
 # ╟─b266abf5-d287-4ca0-945e-2c771529fd41
 # ╟─8927283a-c4e2-4c3a-b32f-850391eef9c7
 # ╟─f4597370-4bc8-4763-8030-3a4dc89533b6
-# ╠═2c4f6363-7b5a-40a0-aa47-251c53ae7367
+# ╟─2c4f6363-7b5a-40a0-aa47-251c53ae7367
 # ╟─b2dc480b-b6fc-471a-9724-1034415f4cfc
 # ╟─492b98ea-e5d8-40e3-ae89-df68d183c100
 # ╠═189bb0b7-d3ae-4aa7-b9e3-1ee5dcc63e4d
-# ╟─bbcf49bb-4be0-463d-87ea-83f674a5729d
+# ╠═bbcf49bb-4be0-463d-87ea-83f674a5729d
