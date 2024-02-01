@@ -59,10 +59,13 @@ md"
 
 # ╔═╡ acf26a3f-6f2c-4bfa-a0b4-1d0379cc47fe
 begin
-	wpds = NCDataset(datadir("p_wwgt.nc"))
-	wp_yr = wpds["p_wwgt"][:,:]
-	sp_yr = wpds["sp"][:,:]
+	wpds = NCDataset(datadir("p_wwgt-climatology.nc"))
+	lon  = wpds["longitude"][:]
+	lat  = wpds["latitude"][:]
+	wp_yr = wpds["p_wwgt"][:,:] / 100
+	sp_yr = wpds["sp"][:,:] / 100
 	close(wpds)
+	wp_yr[elsd.z.>500] .= NaN
 	md"Loading and filtering w-weighted pressure and sigma data and counts ..."
 end
 
@@ -105,10 +108,10 @@ begin
 		[4,4,4,4,4,4,4,4,4,6,0,7,5,5,5,5,5,5,5,5,5],
 	],aspect=7,axwidth=5,wspace=0,sharex=0)
 	
-	c1 = axs[1].pcolormesh(elsd.lon,elsd.lat,wp_yr',levels=(9:0.5:15).*50,extend="both",cmap="drywet_r")
+	c1 = axs[1].pcolormesh(elsd.lon,elsd.lat,wp_yr',levels=(8:0.5:16).*50,extend="both",cmap="drywet_r")
 
 	for ii in 1 : 3
-		axs[ii].pcolormesh(elsd.lon,elsd.lat,wp_yr',levels=(9:0.5:15).*50,extend="both",cmap="drywet_r")
+		axs[ii].pcolormesh(elsd.lon,elsd.lat,wp_yr',levels=(8:0.5:16).*50,extend="both",cmap="drywet_r")
 		axs[ii].plot(clon,clat,c="k",lw=0.5)
 		axs[ii].format(ylabel=L"Latitude / $\degree$",ylocator=-10:10:20,yminorlocator=-10:5:20,xminorlocator=90:5:300)
 	end
@@ -188,7 +191,7 @@ end
 # ╟─a5487828-a442-4a64-b784-65a7319fc90c
 # ╟─cb7c6118-e25b-462a-84a5-751ea0682b52
 # ╟─b68195cb-cf2e-4ce4-9999-1d71eacedf6a
-# ╟─acf26a3f-6f2c-4bfa-a0b4-1d0379cc47fe
+# ╠═acf26a3f-6f2c-4bfa-a0b4-1d0379cc47fe
 # ╟─7c954c2b-bfdc-4efd-a3b4-8038e66e1ee5
 # ╟─ee25250d-ddad-4242-9536-d3d0f72e0f85
 # ╟─00f069bb-0834-4859-94fa-7b0c146e3a11
