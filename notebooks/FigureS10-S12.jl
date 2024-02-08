@@ -292,22 +292,92 @@ begin
 	ibin .= 0; iprc .= 0; inum .= 0
 	
 	for istn = 1
-		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
 	end
 	for istn = [3,4]
-		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
 	end
 	for istn = 2
-		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
 	end
 	for istn = 5 : 7
-		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
 	end
 	for istn = 9 : 11
-		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
 	end
 	for istn = [8,12]
-		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=7)
+	end
+
+	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
+	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
+	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+
+	# threshold!(abin,anum,aprc)
+	# threshold!(bbin,bnum,bprc)
+	# threshold!(cbin,cnum,cprc)
+	# threshold!(dbin,dnum,dprc)
+	# threshold!(ebin,enum,eprc)
+	# threshold!(fbin,fnum,fprc)
+	# threshold!(gbin,gnum,gprc)
+	# threshold!(hbin,hnum,hprc)
+	# threshold!(ibin,inum,iprc)
+
+	pplt.close(); f1,a1 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
+		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
+	)
+
+	c1_1,c1_2 = 
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-90:5:-40,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-90:5:-40)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-90:5:-40)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-90:5:-40)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-90:5:-40)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-90:5:-40)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-90:5:-40)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-90:5:-40)
+
+	axesformat!(a1)
+	a1[1].format(suptitle="7-Day WRF Moving Average")
+	
+	f1.colorbar(c1_1,loc="r",rows=1,locator=-150:10:-40,label=L"$\delta^{2}$H / $\perthousand$")
+	f1.colorbar(c1_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
+	
+	f1.savefig(projectdir("figures","figS10-wrfdepletion-07dayHDO.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS10-wrfdepletion-07dayHDO.png"))
+end
+
+# ╔═╡ 18bd82a5-b678-4909-aec3-bcaa775b5ac7
+begin
+	abin .= 0; aprc .= 0; anum .= 0
+	bbin .= 0; bprc .= 0; bnum .= 0
+	cbin .= 0; cprc .= 0; cnum .= 0
+	dbin .= 0; dprc .= 0; dnum .= 0
+	ebin .= 0; eprc .= 0; enum .= 0
+	fbin .= 0; fprc .= 0; fnum .= 0
+	gbin .= 0; gprc .= 0; gnum .= 0
+	hbin .= 0; hprc .= 0; hnum .= 0
+	ibin .= 0; iprc .= 0; inum .= 0
+	
+	for istn = 1
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = [3,4]
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 2
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 5 : 7
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 9 : 11
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = [8,12]
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
 	end
 
 	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
@@ -330,13 +400,73 @@ begin
 	plotbin!(a2,8,rbin,pbin,gbin,gprc,gnum,-12:0.5:-7)
 
 	axesformat!(a2)
-	a2[1].format(suptitle="7-Day WRF Moving Average")
+	a2[1].format(suptitle="30-Day WRF Moving Average")
 	
 	f2.colorbar(c2_1,loc="r",rows=1,locator=-15:-7,label=L"$\delta^{18}$O / $\perthousand$")
 	f2.colorbar(c2_2,loc="r",rows=2,label="Number of Observations")
 	
-	f2.savefig(projectdir("figures","figS5-wrfdepletion.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS5-wrfdepletion.png"))
+	f2.savefig(projectdir("figures","figS11-wrfdepletion-30dayO18.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS11-wrfdepletion-30dayO18.png"))
+end
+
+# ╔═╡ 73935c9d-7d84-49a0-a76d-014cb5c4936f
+begin
+	abin .= 0; aprc .= 0; anum .= 0
+	bbin .= 0; bprc .= 0; bnum .= 0
+	cbin .= 0; cprc .= 0; cnum .= 0
+	dbin .= 0; dprc .= 0; dnum .= 0
+	ebin .= 0; eprc .= 0; enum .= 0
+	fbin .= 0; fprc .= 0; fnum .= 0
+	gbin .= 0; gprc .= 0; gnum .= 0
+	hbin .= 0; hprc .= 0; hnum .= 0
+	ibin .= 0; iprc .= 0; inum .= 0
+	
+	for istn = 1
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+	for istn = [3,4]
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+	for istn = 2
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+	for istn = 5 : 7
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+	for istn = 9 : 11
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+	for istn = [8,12]
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="HDO",box=true,bnum=4,days=30)
+	end
+
+	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
+	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
+	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+
+	pplt.close(); f3,a3 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
+		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
+	)
+
+	c3_1,c3_2 = 
+	plotbin!(a3,1,rbin,pbin,hbin,hprc,hnum,-90:5:-40,returncinfo=true)
+	plotbin!(a3,2,rbin,pbin,bbin,bprc,bnum,-90:5:-40)
+	plotbin!(a3,3,rbin,pbin,cbin,cprc,cnum,-90:5:-40)
+	plotbin!(a3,4,rbin,pbin,dbin,dprc,dnum,-90:5:-40)
+	plotbin!(a3,5,rbin,pbin,ibin,iprc,inum,-90:5:-40)
+	plotbin!(a3,6,rbin,pbin,ebin,eprc,enum,-90:5:-40)
+	plotbin!(a3,7,rbin,pbin,fbin,fprc,fnum,-90:5:-40)
+	plotbin!(a3,8,rbin,pbin,gbin,gprc,gnum,-90:5:-40)
+
+	axesformat!(a3)
+	a3[1].format(suptitle="30-Day WRF Moving Average")
+	
+	f3.colorbar(c3_1,loc="r",rows=1,locator=-120:10:-40,label=L"$\delta^{2}$H / $\perthousand$")
+	f3.colorbar(c3_2,loc="r",rows=2,label="Number of Observations")
+	
+	f3.savefig(projectdir("figures","figS12-wrfdepletion-30dayHDO.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS12-wrfdepletion-30dayHDO.png"))
 end
 
 # ╔═╡ Cell order:
@@ -353,3 +483,5 @@ end
 # ╟─3bb9d01b-b214-44b1-975e-fcab56d8eb99
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 # ╟─c57ae725-3056-481c-a004-a916192744be
+# ╟─18bd82a5-b678-4909-aec3-bcaa775b5ac7
+# ╟─73935c9d-7d84-49a0-a76d-014cb5c4936f

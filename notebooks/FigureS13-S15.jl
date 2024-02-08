@@ -313,22 +313,22 @@ begin
 	ibin .= 0; iprc .= 0; inum .= 0
 	
 	for istn = 1
-		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 	for istn = [3,4]
-		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 	for istn = 2
-		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 	for istn = 5 : 7
-		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 	for istn = 9 : 11
-		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 	for istn = [8,12]
-		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=7)
 	end
 
 	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
@@ -341,23 +341,143 @@ begin
 	)
 
 	c1_1,c1_2 = 
-	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-22:-10,returncinfo=true)
-	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-22:-10)
-	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-22:-10)
-	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-22:-10)
-	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-22:-10)
-	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-22:-10)
-	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-22:-10)
-	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-22:-10)
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-150:5:-75,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-150:5:-75)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-150:5:-75)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-150:5:-75)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-150:5:-75)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-150:5:-75)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-150:5:-75)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-150:5:-75)
 
 	axesformat!(a1)
 	a1[1].format(suptitle="7-Day WRF Moving Average")
 
-	f1.colorbar(c1_1,loc="r",rows=1,locator=-22:2:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
+	f1.colorbar(c1_1,loc="r",rows=1,locator=-150:15:-60,label=L"$\delta^{2}$H / $\perthousand$",minorlocator=-150:5:-45)
 	f1.colorbar(c1_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
 	
-	f1.savefig(projectdir("figures","fig4-wrfadvec.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig4-wrfadvec.png"))
+	f1.savefig(projectdir("figures","figS13-wrfadvec-07dayHDO.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS13-wrfadvec-07dayHDO.png"))
+end
+
+# ╔═╡ ee3648b3-9a0c-419e-a8dc-629886fa7024
+begin
+	abin .= 0; aprc .= 0; anum .= 0
+	bbin .= 0; bprc .= 0; bnum .= 0
+	cbin .= 0; cprc .= 0; cnum .= 0
+	dbin .= 0; dprc .= 0; dnum .= 0
+	ebin .= 0; eprc .= 0; enum .= 0
+	fbin .= 0; fprc .= 0; fnum .= 0
+	gbin .= 0; gprc .= 0; gnum .= 0
+	hbin .= 0; hprc .= 0; hnum .= 0
+	ibin .= 0; iprc .= 0; inum .= 0
+	
+	for istn = 1
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = [3,4]
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 2
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 5 : 7
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = 9 : 11
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+	for istn = [8,12]
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=30)
+	end
+
+	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
+	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
+	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+	
+	pplt.close(); f2,a2 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
+		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
+	)
+
+	c2_1,c2_2 = 
+	plotbin!(a2,1,rbin,pbin,hbin,hprc,hnum,-22:-10,returncinfo=true)
+	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-22:-10)
+	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-22:-10)
+	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-22:-10)
+	plotbin!(a2,5,rbin,pbin,ibin,iprc,inum,-22:-10)
+	plotbin!(a2,6,rbin,pbin,ebin,eprc,enum,-22:-10)
+	plotbin!(a2,7,rbin,pbin,fbin,fprc,fnum,-22:-10)
+	plotbin!(a2,8,rbin,pbin,gbin,gprc,gnum,-22:-10)
+
+	axesformat!(a2)
+	a2[1].format(suptitle="30-Day WRF Moving Average")
+
+	f2.colorbar(c2_1,loc="r",rows=1,locator=-22:2:-8,label=L"$\delta^{18}$O / $\perthousand$")
+	f2.colorbar(c2_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
+	
+	f2.savefig(projectdir("figures","figS14-wrfadvec-30dayO18.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS14-wrfadvec-30dayO18.png"))
+end
+
+# ╔═╡ e4a94e17-d8bd-411e-93f8-c4e1f709552e
+begin
+	abin .= 0; aprc .= 0; anum .= 0
+	bbin .= 0; bprc .= 0; bnum .= 0
+	cbin .= 0; cprc .= 0; cnum .= 0
+	dbin .= 0; dprc .= 0; dnum .= 0
+	ebin .= 0; eprc .= 0; enum .= 0
+	fbin .= 0; fprc .= 0; fnum .= 0
+	gbin .= 0; gprc .= 0; gnum .= 0
+	hbin .= 0; hprc .= 0; hnum .= 0
+	ibin .= 0; iprc .= 0; inum .= 0
+	
+	for istn = 1
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+	for istn = [3,4]
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+	for istn = 2
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+	for istn = 5 : 7
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+	for istn = 9 : 11
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+	for istn = [8,12]
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,box=true,bnum=4,days=30)
+	end
+
+	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
+	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
+	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+	
+	pplt.close(); f3,a3 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
+		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
+	)
+
+	c3_1,c3_2 = 
+	plotbin!(a3,1,rbin,pbin,hbin,hprc,hnum,-150:5:-75,returncinfo=true)
+	plotbin!(a3,2,rbin,pbin,bbin,bprc,bnum,-150:5:-75)
+	plotbin!(a3,3,rbin,pbin,cbin,cprc,cnum,-150:5:-75)
+	plotbin!(a3,4,rbin,pbin,dbin,dprc,dnum,-150:5:-75)
+	plotbin!(a3,5,rbin,pbin,ibin,iprc,inum,-150:5:-75)
+	plotbin!(a3,6,rbin,pbin,ebin,eprc,enum,-150:5:-75)
+	plotbin!(a3,7,rbin,pbin,fbin,fprc,fnum,-150:5:-75)
+	plotbin!(a3,8,rbin,pbin,gbin,gprc,gnum,-150:5:-75)
+
+	axesformat!(a3)
+	a3[1].format(suptitle="30-Day WRF Moving Average")
+
+	f3.colorbar(c3_1,loc="r",rows=1,locator=-150:15:-60,label=L"$\delta^{2}$H / $\perthousand$")
+	f3.colorbar(c3_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
+	
+	f3.savefig(projectdir("figures","figS15-wrfadvec-30dayHDO.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS15-wrfadvec-30dayHDO.png"))
 end
 
 # ╔═╡ Cell order:
@@ -374,3 +494,5 @@ end
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 # ╟─b6500812-fd5e-4842-8855-655822d170f4
+# ╟─ee3648b3-9a0c-419e-a8dc-629886fa7024
+# ╟─e4a94e17-d8bd-411e-93f8-c4e1f709552e

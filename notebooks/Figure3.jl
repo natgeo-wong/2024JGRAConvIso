@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -278,7 +278,9 @@ begin
 	for idy = 4 : (length(time)-3)
 
 		dt  = time[idy]; dayii = day(dt)
-		ids = read(e5dy,evar,ereg,dt,smooth=true,smoothtime=7,quiet=true)
+		ids = NCDataset(datadir("processed-p_wwgt.nc"))
+		pwwgt = nomissing(ids["pω$(@sprintf("%02d",7))"][:,:],NaN)
+		close(ids)
 
 		prcps_ii = prcps[idy.+(-3:3),:]
 		δ18Oμ_ii = δ18Oμ[idy.+(-3:3),:]
@@ -294,7 +296,7 @@ begin
 				prcpμii = mean(prcpsii[iNaN])
 				prcptot = sum(prcpsii[iNaN])
 				δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
-				pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+				pwwgtii = pwwgt[idy,istn] / 100
 				if ismissing(pwwgtii); pwwgtii = NaN end
 	
 				if !isnan(prcpμii) && !isnan(pwwgtii)
@@ -319,7 +321,7 @@ begin
 				prcpμii = mean(prcpsii[iNaN])
 				prcptot = sum(prcpsii[iNaN])
 				δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
-				pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+				pwwgtii = pwwgt[idy,istn] / 100
 				if ismissing(pwwgtii); pwwgtii = NaN end
 	
 				if !isnan(prcpμii) && !isnan(pwwgtii)
@@ -344,7 +346,7 @@ begin
 				prcpμii = mean(prcpsii[iNaN])
 				prcptot = sum(prcpsii[iNaN])
 				δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
-				pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+				pwwgtii = pwwgt[idy,istn] / 100
 				if ismissing(pwwgtii); pwwgtii = NaN end
 	
 				if !isnan(prcpμii) && !isnan(pwwgtii)
@@ -369,7 +371,7 @@ begin
 				prcpμii = mean(prcpsii[iNaN])
 				prcptot = sum(prcpsii[iNaN])
 				δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
-				pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+				pwwgtii = pwwgt[idy,istn] / 100
 				if ismissing(pwwgtii); pwwgtii = NaN end
 	
 				if !isnan(prcpμii) && !isnan(pwwgtii)
@@ -394,7 +396,7 @@ begin
 				prcpμii = mean(prcpsii[iNaN])
 				prcptot = sum(prcpsii[iNaN])
 				δ18Oμii = sum(δ18Oμii[iNaN] .* prcpsii[iNaN])
-				pwwgtii = ids["p_wwgt"][ilon,ilat,dayii] / 100
+				pwwgtii = pwwgt[idy,istn] / 100
 				if ismissing(pwwgtii); pwwgtii = NaN end
 	
 				if !isnan(prcpμii) && !isnan(pwwgtii)
@@ -407,7 +409,7 @@ begin
 
 		end
 
-		close(ids)
+		# close(ids)
 
 	end
 
@@ -420,7 +422,7 @@ begin
 	plotbin!(a3,6,rbin,pbin,dbin,dprc,dnum,-10:-2,returncinfo=true)
 
 	axesformat!(a3)
-	a3[1].format(suptitle="7-Day WRF Moving Average")
+	a3[1].format(suptitle="7-Day Station Moving Average")
 	f3.colorbar(c3_1,label=L"$\delta^{18}$O / $\perthousand$",locator=-70:2:0,minorlocator=-90:0,row=[1])
 	f3.colorbar(c3_2,label="Number of Observations",row=[2])
 
