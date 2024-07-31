@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.45
 
 using Markdown
 using InteractiveUtils
@@ -50,38 +50,48 @@ begin
 	md"Loading station location information ..."
 end
 
-# ╔═╡ 32c650df-ccd2-4adf-a3b7-56611fff1b46
-begin
-	coast = readdlm(datadir("coast.cst"),comments=true)
-	x = coast[:,1]
-	y = coast[:,2]
-	md"Preloading coastline data"
-end
-
 # ╔═╡ eb7a010b-5e93-48c5-8e0a-698fbd70cda4
 begin
 	flights = loadflightpaths()
 	md"Loading flight path data ..."
 end
 
-# ╔═╡ 60d38ccd-6538-426f-985e-9d782834dce9
-begin
-	xinset = deepcopy(x); xinset[(x.>285).|(x.<270).|(y.>15).|(y.<0)].=NaN
-	yinset = deepcopy(y); yinset[(x.>285).|(x.<270).|(y.>15).|(y.<0)].=NaN
-	md"Filtering out coastlines outside domain ..."
-end
+# ╔═╡ d5adfc26-72a1-49c0-b8bf-f626bd4e69bc
+geo_d01 = GeoRegion("OTREC_wrf_d01",path=srcdir())
 
 # ╔═╡ c16d89d9-d7ba-4b79-aa7c-8570467333e0
-geo = GeoRegion("OTREC")
+geo_d02 = GeoRegion("OTREC_wrf_d02",path=srcdir())
+
+# ╔═╡ 32c650df-ccd2-4adf-a3b7-56611fff1b46
+begin
+	coast = readdlm(datadir("coast.cst"),comments=true)
+	x = coast[:,1]; y = coast[:,2]; npnts = length(x)
+	for ipnt = 1 : npnts
+		pnt = Point2(x[ipnt],y[ipnt])
+		if !in(pnt,geo_d02)
+			x[ipnt] = NaN; y[ipnt] = NaN
+		end
+	end
+	md"Preloading coastline data"
+end
 
 # ╔═╡ 194bb86d-a3bb-4585-ba66-067dd4488189
-geo_large = GeoRegion("OTREC_LRG")
+geo_big = GeoRegion("Fig2_big",path=srcdir())
 
-# ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
-lsd = getLandSea(geo,path=datadir(),returnlsd=true)
+# ╔═╡ ee60cad1-0863-4974-9690-087d0c6dc06e
+geo_sml = GeoRegion("Fig2_small",path=srcdir())
+
+# ╔═╡ 1ae33598-e283-49f7-bc8d-274b33ab12a5
+lsd_d02 = getLandSea(geo_d02,path=datadir(),returnlsd=true)
 
 # ╔═╡ 76e35851-71a0-4b89-98bb-9a82bf34bd34
-lsd_large = getLandSea(geo_large,path=datadir(),returnlsd=true)
+lsd_big = getLandSea(geo_big,path=datadir(),returnlsd=true)
+
+# ╔═╡ 7b4eaccc-7f7e-4c82-9ec5-f82834c75098
+lon_d01,lat_d01 = coordGeoRegion(geo_d01);
+
+# ╔═╡ dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
+lon_d02,lat_d02 = coordGeoRegion(geo_d02);
 
 # ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
 md"
@@ -89,6 +99,7 @@ md"
 "
 
 # ╔═╡ d7755534-3565-4011-b6e3-e131991008db
+#=╠═╡
 begin
 	pplt.close(); fig,axs = pplt.subplots(aspect=27/17,axwidth=5)
 
@@ -96,12 +107,13 @@ begin
 	textdict = Dict("fc"=>"grey3","ec"=>"none","alpha"=>0.6)
 	
 	axs[1].pcolormesh(
-		lsd_large.lon,lsd_large.lat,lsd_large.z'/1000,alpha=0.3,
-		levels=lvls,cmap="delta",extend="both"
+		lsd_big.lon[1:10:end],lsd_big.lat[1:10:end],
+		lsd_big.z[1:10:end,1:10:end]'/1000,
+		alpha=0.3,levels=lvls,cmap="delta",extend="both"
 	)
 	
-	c = axs[1].pcolormesh(
-		lsd.lon,lsd.lat,lsd.z'/1000,
+	axs[1].pcolormesh(
+		lsd_d02.lon.+360,lsd_d02.lat,lsd_d02.z'/1000,
 		levels=lvls,cmap="delta",extend="both"
 	)
 
@@ -109,16 +121,13 @@ begin
 		axs[1].plot(flights[ii][:,1].+360,flights[ii][:,2],c="purple",linestyle=":")
 	end
 	
-	axs[1].plot(xinset,yinset,lw=0.5,c="k")
+	axs[1].plot(x,y,lw=0.5,c="k")
 	axs[1].plot([275,275,278,278,275],[8,10.5,10.5,8,8],lw=1,c="k",linestyle="--")
 	axs[1].scatter(infody[:,2],infody[:,3],zorder=4,c="pink")
 	axs[1].scatter(infocr[:,2],infocr[:,3],zorder=4,c="red")
 	axs[1].plot([275,288],[10.5,15],lw=1,c="k",linestyle=":")
 	axs[1].plot([278,295],[8,9.03],lw=1,c="k",linestyle=":")
-	axs[1].plot([270,285,285,270,270],[0,0,15,15,0],lw=5,c="k")
-	axs[1].text(285.5,14.5,"(a)",c="k",size=10)
-	axs[1].text(286.8,14.5,"(b)",c="k",size=10)
-	axs[1].text(286.8,6.5,"(c)",c="k",size=10)
+	axs[1].plot(lon_d02.+360,lat_d02,lw=5,c="k")
 
 	axs[1].text(272.3,10,"Liberia",c="k",size=8,bbox=textdict)
 	axs[1].text(277.5,13,"San Andres",c="k",size=8,bbox=textdict)
@@ -134,11 +143,11 @@ begin
 	)
 
 	ix = fig.add_axes([0.635,0.632,0.21,0.30])
-	ix.pcolormesh(
-		lsd.lon,lsd.lat,lsd.z'/1000,
+	c = ix.pcolormesh(
+		lsd_sml.lon,lsd_sml.lat,lsd_sml.z'/1000,
 		levels=lvls,cmap="delta",extend="both"
 	)
-	ix.plot(xinset,yinset,lw=0.5,c="k")
+	ix.plot(x,y,lw=0.5,c="k")
 	ix.scatter(infocr[:,2],infocr[:,3],s=10,zorder=4,c="r")
 
 	ix.text(275.2,10.15,"EEFMB",c="k",size=7,bbox=textdict)
@@ -148,6 +157,7 @@ begin
 	ix.text(276.2,10.22,"Bataan",c="k",size=7,bbox=textdict)
 	ix.text(277,10.1,"Limon",c="k",size=7,bbox=textdict)
 	ix.text(277,9.45,"Cahuita",c="k",size=7,bbox=textdict)
+	ix.text(275.1,8.2,"(a)",c="k",size=9)
 	
 	ix.format(
 		xlim=(275,278),ylim=(8,10.5),xtickloc="none",ytickloc="none",
@@ -157,22 +167,24 @@ begin
 
 	ix = fig.add_axes([0.635,0.175,0.21,0.36])
 	ix.pcolormesh(
-		lsd_large.lon,lsd_large.lat,lsd_large.z'/1000,
+		lsd_big.lon[1:10:end],lsd_big.lat[1:10:end],
+		lsd_big.z[1:10:end,1:10:end]'/1000,alpha=0.3,
 		levels=lvls,cmap="delta",extend="both"
 	)
 	ix.pcolormesh(
-		lsd.lon,lsd.lat,lsd.z'/1000,
+		lsd_d02.lon.+360,lsd_d02.lat,lsd_d02.z'/1000,
 		levels=lvls,cmap="delta",extend="both"
 	)
 
 	for ii = 1 : 22
 		ix.plot(flights[ii][:,1].+360,flights[ii][:,2],c="purple")
 	end
-	ix.plot(xinset,yinset,lw=0.5,c="k")
-	ix.plot([270,285,285,270,270],[0,0,15,15,0],lw=1.5,c="k")
-	ix.plot([255,300,300,255,255],[-15,-15,30,30,-15],lw=1.5,c="k",linestyle="--")
-	ix.text(260,0,"d02",c="k",size=8)
-	ix.text(290,-12,"d01",c="k",size=8)
+	ix.plot(x,y,lw=0.5,c="k")
+	ix.plot(lon_d02.+360,lat_d02,lw=1.5,c="k")
+	ix.plot(lon_d01.+360,lat_d01,lw=1.5,c="k",linestyle="--")
+	ix.text(281,-5,"d02",c="k",size=8)
+	ix.text(286,-14,"d01",c="k",size=8)
+	ix.text(252,28,"(b)",c="k",size=9)
 	ix.format(
 		xlim=(250,305),ylim=(-20,35),xtickloc="none",ytickloc="none",
 		xlocator=255:15:300,xminorlocator=240:5:315,xticklabels=[],
@@ -183,6 +195,18 @@ begin
 	fig.savefig(projectdir("figures","fig2-domain.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig2-domain.png"))
 end
+  ╠═╡ =#
+
+# ╔═╡ f5443b48-e166-4d4f-bff5-ad7b5957ad69
+# ╠═╡ disabled = true
+#=╠═╡
+lsd_sml = getLandSea(geo_sml,path=datadir(),returnlsd=true)
+  ╠═╡ =#
+
+# ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
+#=╠═╡
+lsd_sml = getLandSea(geo_sml,path=datadir(),returnlsd=true)
+  ╠═╡ =#
 
 # ╔═╡ Cell order:
 # ╟─fa2f8740-f813-11ec-00e1-112e2dfacda7
@@ -191,12 +215,17 @@ end
 # ╟─ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
 # ╟─a6ab92dd-1fae-4a04-b8f3-6782ea67c60b
 # ╟─189e1048-c92d-457e-a30e-f4e523b80afc
-# ╟─32c650df-ccd2-4adf-a3b7-56611fff1b46
+# ╠═32c650df-ccd2-4adf-a3b7-56611fff1b46
 # ╟─eb7a010b-5e93-48c5-8e0a-698fbd70cda4
-# ╟─60d38ccd-6538-426f-985e-9d782834dce9
+# ╟─d5adfc26-72a1-49c0-b8bf-f626bd4e69bc
 # ╟─c16d89d9-d7ba-4b79-aa7c-8570467333e0
 # ╟─194bb86d-a3bb-4585-ba66-067dd4488189
+# ╟─ee60cad1-0863-4974-9690-087d0c6dc06e
+# ╠═1ae33598-e283-49f7-bc8d-274b33ab12a5
 # ╟─5d6c3cd6-e406-461d-a226-20022060398d
 # ╟─76e35851-71a0-4b89-98bb-9a82bf34bd34
+# ╟─f5443b48-e166-4d4f-bff5-ad7b5957ad69
+# ╠═7b4eaccc-7f7e-4c82-9ec5-f82834c75098
+# ╠═dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
 # ╟─d7755534-3565-4011-b6e3-e131991008db
