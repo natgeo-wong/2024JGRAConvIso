@@ -124,6 +124,14 @@ begin
 		levels=lvls,cmap="delta",extend="both"
 	)
 
+
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,270,2,"1",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,272,1,"1",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,270,6.5,"1",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,272,11,"11",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,14,"13",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,6.5,"13",c="k",size=8)
+	
 	for ipnt = 1 : 13
 		geosample = GeoRegion("OTREC_wrf_ITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
@@ -148,9 +156,9 @@ begin
 	axs[1].plot([278,295],[8,9.03],lw=1,c="k",linestyle=":")
 	axs[1].plot(lon_d02.+360,lat_d02,lw=5,c="k")
 
-	axs[1].text(272.3,10,"Liberia",c="k",size=8,bbox=textdict)
+	axs[1].text(273.5,11,"Liberia",c="k",size=8,bbox=textdict)
 	axs[1].text(277.5,13,"San Andres",c="k",size=8,bbox=textdict)
-	axs[1].text(278.6,6,"Bahía Solano",c="k",size=8,bbox=textdict)
+	axs[1].text(283,6.5,"Bahía Solano",c="k",size=8,bbox=textdict)
 	axs[1].text(282,4.75,"Quibdó",c="k",size=8,bbox=textdict)
 	axs[1].text(278.8,3.5,"Buenaventura",c="k",size=8,bbox=textdict)
 	
