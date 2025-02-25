@@ -15,13 +15,15 @@ end
 begin
 	@quickactivate "2024GLConvIso"
 	using DelimitedFiles
+	using ETOPO
 	using GeoRegions
 	using NCDatasets
 	using PlutoUI
+	using Printf
 
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 
@@ -56,6 +58,9 @@ begin
 	md"Loading flight path data ..."
 end
 
+# ╔═╡ 3ec67c8a-bbbf-4ad5-a55e-e681c88d3c9d
+etpd = ETOPODataset(path=datadir())
+
 # ╔═╡ d5adfc26-72a1-49c0-b8bf-f626bd4e69bc
 geo_d01 = GeoRegion("OTREC_wrf_d01",path=srcdir())
 
@@ -82,16 +87,19 @@ geo_big = GeoRegion("Fig2_big",path=srcdir())
 geo_sml = GeoRegion("Fig2_small",path=srcdir())
 
 # ╔═╡ 1ae33598-e283-49f7-bc8d-274b33ab12a5
-lsd_d02 = getLandSea(geo_d02,path=datadir(),returnlsd=true)
+lsd_d02 = getLandSea(etpd,geo_d02,returnlsd=true)
+
+# ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
+lsd_sml = getLandSea(etpd,geo_sml,returnlsd=true)
 
 # ╔═╡ 76e35851-71a0-4b89-98bb-9a82bf34bd34
-lsd_big = getLandSea(geo_big,path=datadir(),returnlsd=true)
+lsd_big = getLandSea(etpd,geo_big,returnlsd=true)
 
 # ╔═╡ 7b4eaccc-7f7e-4c82-9ec5-f82834c75098
-lon_d01,lat_d01 = coordGeoRegion(geo_d01);
+lon_d01,lat_d01 = coordinates(geo_d01);
 
 # ╔═╡ dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
-lon_d02,lat_d02 = coordGeoRegion(geo_d02);
+lon_d02,lat_d02 = coordinates(geo_d02);
 
 # ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
 md"
@@ -99,7 +107,6 @@ md"
 "
 
 # ╔═╡ d7755534-3565-4011-b6e3-e131991008db
-#=╠═╡
 begin
 	pplt.close(); fig,axs = pplt.subplots(aspect=27/17,axwidth=5)
 
@@ -117,8 +124,20 @@ begin
 		levels=lvls,cmap="delta",extend="both"
 	)
 
-	for ii = 1 : 22
-		axs[1].plot(flights[ii][:,1].+360,flights[ii][:,2],c="purple",linestyle=":")
+	for ipnt = 1 : 13
+		geosample = GeoRegion("OTREC_wrf_ITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
+		ilon,ilat = coordinates(geosample)
+		axs[1].plot(ilon.+360,ilat,c="yellow")
+	end
+	for ipnt = 1 : 13
+		geosample = GeoRegion("OTREC_wrf_PAC2ATL$(@sprintf("%02d",ipnt))",path=srcdir())
+		ilon,ilat = coordinates(geosample)
+		axs[1].plot(ilon.+360,ilat,c="brown")
+	end
+	for ipnt = 1 : 11
+		geosample = GeoRegion("OTREC_wrf_CrossITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
+		ilon,ilat = coordinates(geosample)
+		axs[1].plot(ilon.+360,ilat,c="b")
 	end
 	
 	axs[1].plot(x,y,lw=0.5,c="k")
@@ -176,9 +195,6 @@ begin
 		levels=lvls,cmap="delta",extend="both"
 	)
 
-	for ii = 1 : 22
-		ix.plot(flights[ii][:,1].+360,flights[ii][:,2],c="purple")
-	end
 	ix.plot(x,y,lw=0.5,c="k")
 	ix.plot(lon_d02.+360,lat_d02,lw=1.5,c="k")
 	ix.plot(lon_d01.+360,lat_d01,lw=1.5,c="k",linestyle="--")
@@ -195,18 +211,6 @@ begin
 	fig.savefig(projectdir("figures","fig2-domain.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig2-domain.png"))
 end
-  ╠═╡ =#
-
-# ╔═╡ f5443b48-e166-4d4f-bff5-ad7b5957ad69
-# ╠═╡ disabled = true
-#=╠═╡
-lsd_sml = getLandSea(geo_sml,path=datadir(),returnlsd=true)
-  ╠═╡ =#
-
-# ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
-#=╠═╡
-lsd_sml = getLandSea(geo_sml,path=datadir(),returnlsd=true)
-  ╠═╡ =#
 
 # ╔═╡ Cell order:
 # ╟─fa2f8740-f813-11ec-00e1-112e2dfacda7
@@ -217,14 +221,14 @@ lsd_sml = getLandSea(geo_sml,path=datadir(),returnlsd=true)
 # ╟─189e1048-c92d-457e-a30e-f4e523b80afc
 # ╠═32c650df-ccd2-4adf-a3b7-56611fff1b46
 # ╟─eb7a010b-5e93-48c5-8e0a-698fbd70cda4
+# ╠═3ec67c8a-bbbf-4ad5-a55e-e681c88d3c9d
 # ╟─d5adfc26-72a1-49c0-b8bf-f626bd4e69bc
 # ╟─c16d89d9-d7ba-4b79-aa7c-8570467333e0
 # ╟─194bb86d-a3bb-4585-ba66-067dd4488189
 # ╟─ee60cad1-0863-4974-9690-087d0c6dc06e
-# ╠═1ae33598-e283-49f7-bc8d-274b33ab12a5
+# ╟─1ae33598-e283-49f7-bc8d-274b33ab12a5
 # ╟─5d6c3cd6-e406-461d-a226-20022060398d
-# ╟─76e35851-71a0-4b89-98bb-9a82bf34bd34
-# ╟─f5443b48-e166-4d4f-bff5-ad7b5957ad69
+# ╠═76e35851-71a0-4b89-98bb-9a82bf34bd34
 # ╠═7b4eaccc-7f7e-4c82-9ec5-f82834c75098
 # ╠═dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
