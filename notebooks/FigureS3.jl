@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.46
 
 using Markdown
 using InteractiveUtils
@@ -59,18 +59,6 @@ begin
 	md"Loading ERA5 $p_\omega$ data ..."
 end
 
-# ╔═╡ 0cbc9af9-5bbc-484d-b9c0-0474831c5ced
-begin
-	wds = NCDataset(datadir("wrf","grid.nc"))
-	wln = wds["longitude"][:,:]
-	wlt = wds["latitude"][:,:]
-	close(wds)
-	wds = NCDataset(datadir("p_wwgt-compiledwrf.nc"))
-	pωw  = wds["p_wwgt"][:,:]
-	close(wds)
-	md"Loading WRF $p_\omega$ data ..."
-end
-
 # ╔═╡ a443e74d-263b-4c83-8cbd-f482cda0ff79
 md"
 ### B. Extracting ERA5 Tropical Data into OTREC Region
@@ -103,22 +91,44 @@ md"
 ### C. Binning WRF into OTREC ERA5 Grid
 "
 
+# ╔═╡ f2d6e36b-e12f-4c24-81a8-5e03395add53
+begin
+	wwgtp = zeros(length(ggrd.lon),length(ggrd.lat))
+	rain  = zeros(length(ggrd.lon),length(ggrd.lat))
+	md"Preallocation of arrays for weighted pressure ..."
+end
+
+# ╔═╡ 4d5f7822-4ccf-406f-84d7-1edd8cd3d38b
+md"
+### D. Plotting
+"
+
+# ╔═╡ dd4098d9-fae9-4132-9157-06f063a9e129
+imo = 10
+
+# ╔═╡ 0cbc9af9-5bbc-484d-b9c0-0474831c5ced
+begin
+	wds = NCDataset(datadir("wrf","grid.nc"))
+	wln = wds["longitude"][:,:]; nx,ny = size(wln)
+	wlt = wds["latitude"][:,:]
+	close(wds)
+	wds = NCDataset(datadir("p_wwgt-compiledwrf-monthly.nc"))
+	pωw  = wds["p_wwgt"][:,:,imo]
+	prcp = wds["RAINNC"][:,:,imo]
+	close(wds)
+	md"Loading WRF $p_\omega$ data ..."
+end
+
 # ╔═╡ 93fa8a76-03d6-47b7-8e01-6c72f3af09de
 begin
-	ipnt_lon = zeros(Int,543,543)
-	ipnt_lat = zeros(Int,543,543)
-	ind      = zeros(Bool,543,543)
-	for ilat = 1 : 543, ilon = 1 : 543
+	ipnt_lon = zeros(Int,nx,ny)
+	ipnt_lat = zeros(Int,nx,ny)
+	ind      = zeros(Bool,nx,ny)
+	for ilat = 1 : ny, ilon = 1 : nx
 		ipnt_lon[ilon,ilat] = argmin(abs.(wln[ilon,ilat].-ggrd.lon.+360))
 		ipnt_lat[ilon,ilat] = argmin(abs.(wlt[ilon,ilat].-ggrd.lat))
 	end
 	md"Finding closest ERA5 points to each of the WRF points ..."
-end
-
-# ╔═╡ f2d6e36b-e12f-4c24-81a8-5e03395add53
-begin
-	wwgtp = zeros(length(ggrd.lon),length(ggrd.lat))
-	md"Preallocation of arrays for weighted pressure ..."
 end
 
 # ╔═╡ 0972ac7d-235b-4121-9e40-210aac89ecad
@@ -126,16 +136,13 @@ begin
 	for ilat = 1 : length(ggrd.lat), ilon = 1 : length(ggrd.lon)
 		ind = (ipnt_lon.==ilon).&(ipnt_lat.==ilat)
 		iipωw = @view pωw[ind]
+		iprcp = @view prcp[ind]
 		wwgtp[ilon,ilat] = mean(iipωw[.!isnan.(iipωw)])
+		rain[ilon,ilat]  = mean(iprcp[.!isnan.(iprcp)])
 	end
-	wwgtp[lsd.z.>500] .= NaN
+	wwgtp[(lsd.z.>500) .| (rain.<(5))] .= NaN
 	md"Regridding/binning $p_\omega$ into ERA5 Grid"
 end
-
-# ╔═╡ 4d5f7822-4ccf-406f-84d7-1edd8cd3d38b
-md"
-### D. Plotting
-"
 
 # ╔═╡ b87f043f-3994-4587-bfde-92f2808d27e7
 begin
@@ -180,17 +187,18 @@ end
 # ╟─19b04d89-520c-4fdc-8152-3e410ae08b8f
 # ╟─a567368e-ec0e-4944-9c1f-be1cfe9c5d1d
 # ╟─4c887a8c-c057-4695-8126-8881a92220a8
-# ╟─0cbc9af9-5bbc-484d-b9c0-0474831c5ced
+# ╠═0cbc9af9-5bbc-484d-b9c0-0474831c5ced
 # ╟─a443e74d-263b-4c83-8cbd-f482cda0ff79
 # ╟─4de46224-f340-4437-b4c8-7b53440f74d0
-# ╟─9d55b585-71d0-42ff-b045-5f7ddde29ba6
+# ╠═9d55b585-71d0-42ff-b045-5f7ddde29ba6
 # ╟─b06ef4a2-c61d-4fb4-96f3-aaf9ceb1d8a4
 # ╟─a92c0cdd-fcea-4bcb-ac1d-e467eb26da6b
 # ╟─336a4b18-bc1a-4c76-88e0-578f9971c5da
 # ╟─ef6d666b-8a64-461e-9fb5-440748135683
 # ╟─7e69c41b-6e5e-4d5b-8cda-2b5d65ddf6c5
 # ╟─93fa8a76-03d6-47b7-8e01-6c72f3af09de
-# ╟─f2d6e36b-e12f-4c24-81a8-5e03395add53
-# ╟─0972ac7d-235b-4121-9e40-210aac89ecad
+# ╠═f2d6e36b-e12f-4c24-81a8-5e03395add53
+# ╠═0972ac7d-235b-4121-9e40-210aac89ecad
 # ╟─4d5f7822-4ccf-406f-84d7-1edd8cd3d38b
-# ╟─b87f043f-3994-4587-bfde-92f2808d27e7
+# ╠═dd4098d9-fae9-4132-9157-06f063a9e129
+# ╠═b87f043f-3994-4587-bfde-92f2808d27e7

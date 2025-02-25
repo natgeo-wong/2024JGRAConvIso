@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.45
 
 using Markdown
 using InteractiveUtils
@@ -85,14 +85,14 @@ function extract(geoname,iso,days)
 		"wrf","processed",
 		"$geoname-$(iso)QBUDGET.nc"
 	))
-	hvyp = smooth(dropdims(sum(reshape(ds["$(iso)P"][:],8,:),dims=1),dims=1),days)
+	hvyp = smooth(dropdims(sum(reshape(ds["$(iso)P"][:],24,:),dims=1),dims=1),days)
 	close(ds)
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
 		"$geoname-QBUDGET.nc"
 	))
-	prcp = smooth(dropdims(sum(reshape(ds["P"][:],8,:),dims=1),dims=1),days)
+	prcp = smooth(dropdims(sum(reshape(ds["P"][:],24,:),dims=1),dims=1),days)
 	close(ds)
 
 	dsp = NCDataset(datadir(
@@ -119,8 +119,8 @@ function binning!(
 
 	if box
 		for ibox = 1 : bnum
-			boxstr = @sprintf("%02d",ibox)
-			geoname = "OTREC_STN$(stnstr)_$(boxstr)"
+			boxstr = @sprintf("%d",ibox)
+			geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
 			pwgt,prcp,hvyp = extract(geoname,iso,days)
 			nt = length(prcp)
 		
@@ -135,7 +135,7 @@ function binning!(
 			end
 		end
 	else
-		geoname = "OTREC_STN$stnstr"
+		geoname = "OTREC_wrf_stn$stnstr"
 		pwgt,prcp,hvyp = extract(geoname,iso,days)
 		nt = length(prcp)
 	
@@ -320,19 +320,19 @@ begin
 	)
 
 	c2_1,c2_2 = 
-	plotbin!(a2,1,rbin,pbin,hbin,hprc,hnum,-12:0.5:-7,returncinfo=true)
-	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-12:0.5:-7)
-	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-12:0.5:-7)
-	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-12:0.5:-7)
-	plotbin!(a2,5,rbin,pbin,ibin,iprc,inum,-12:0.5:-7)
-	plotbin!(a2,6,rbin,pbin,ebin,eprc,enum,-12:0.5:-7)
-	plotbin!(a2,7,rbin,pbin,fbin,fprc,fnum,-12:0.5:-7)
-	plotbin!(a2,8,rbin,pbin,gbin,gprc,gnum,-12:0.5:-7)
+	plotbin!(a2,1,rbin,pbin,hbin,hprc,hnum,-10:20,returncinfo=true)
+	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-10:20)
+	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-10:20)
+	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-10:20)
+	plotbin!(a2,5,rbin,pbin,ibin,iprc,inum,-10:20)
+	plotbin!(a2,6,rbin,pbin,ebin,eprc,enum,-10:20)
+	plotbin!(a2,7,rbin,pbin,fbin,fprc,fnum,-10:20)
+	plotbin!(a2,8,rbin,pbin,gbin,gprc,gnum,-10:20)
 
 	axesformat!(a2)
 	a2[1].format(suptitle="7-Day WRF Moving Average")
 	
-	f2.colorbar(c2_1,loc="r",rows=1,locator=-15:-7,label=L"$\delta^{18}$O / $\perthousand$")
+	f2.colorbar(c2_1,loc="r",rows=1,locator=-15:5:20,label=L"$\delta^{18}$O / $\perthousand$")
 	f2.colorbar(c2_2,loc="r",rows=2,label="Number of Observations")
 	
 	f2.savefig(projectdir("figures","figS5-wrfdepletion.png"),transparent=false,dpi=400)
@@ -346,10 +346,10 @@ end
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
-# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─42c325e3-d1df-4e09-8d59-8e1505210c43
 # ╟─7e66a747-056c-445e-a021-0d919ddc26bb
 # ╟─3bb9d01b-b214-44b1-975e-fcab56d8eb99
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╟─c57ae725-3056-481c-a004-a916192744be
+# ╠═c57ae725-3056-481c-a004-a916192744be
