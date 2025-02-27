@@ -87,19 +87,28 @@ geo_big = GeoRegion("Fig2_big",path=srcdir())
 geo_sml = GeoRegion("Fig2_small",path=srcdir())
 
 # ╔═╡ 1ae33598-e283-49f7-bc8d-274b33ab12a5
-lsd_d02 = getLandSea(etpd,geo_d02,returnlsd=true)
+lsd_d02 = getLandSea(etpd,geo_d02)
 
 # ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
-lsd_sml = getLandSea(etpd,geo_sml,returnlsd=true)
+lsd_sml = getLandSea(etpd,geo_sml)
 
 # ╔═╡ 76e35851-71a0-4b89-98bb-9a82bf34bd34
-lsd_big = getLandSea(etpd,geo_big,returnlsd=true)
+lsd_big = getLandSea(etpd,geo_big)
 
 # ╔═╡ 7b4eaccc-7f7e-4c82-9ec5-f82834c75098
 lon_d01,lat_d01 = coordinates(geo_d01);
 
 # ╔═╡ dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
 lon_d02,lat_d02 = coordinates(geo_d02);
+
+# ╔═╡ c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
+begin
+	slon,slat = coordinates(GeoRegion("OTREC_wrf_stn08",path=srcdir()))
+	blon1,blat1 = coordinates(GeoRegion("OTREC_wrf_stn08_box1",path=srcdir()))
+	blon2,blat2 = coordinates(GeoRegion("OTREC_wrf_stn08_box2",path=srcdir()))
+	blon3,blat3 = coordinates(GeoRegion("OTREC_wrf_stn08_box3",path=srcdir()))
+	blon4,blat4 = coordinates(GeoRegion("OTREC_wrf_stn08_box4",path=srcdir()))
+end
 
 # ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
 md"
@@ -110,18 +119,19 @@ md"
 begin
 	pplt.close(); fig,axs = pplt.subplots(aspect=27/17,axwidth=5)
 
-	lvls = -6 : 6
+	lvls = -4 : 0.5 : 4
 	textdict = Dict("fc"=>"grey3","ec"=>"none","alpha"=>0.6)
 	
 	axs[1].pcolormesh(
 		lsd_big.lon[1:10:end],lsd_big.lat[1:10:end],
 		lsd_big.z[1:10:end,1:10:end]'/1000,
-		alpha=0.3,levels=lvls,cmap="delta",extend="both"
+		alpha=0.3,levels=lvls,cmap="bukavu",extend="both"
 	)
 	
 	axs[1].pcolormesh(
-		lsd_d02.lon.+360,lsd_d02.lat,lsd_d02.z'/1000,
-		levels=lvls,cmap="delta",extend="both"
+		lsd_d02.lon[1:10:end].+360,lsd_d02.lat[1:10:end],
+		lsd_d02.z[1:10:end,1:10:end]'/1000,
+		levels=lvls,cmap="bukavu",extend="both"
 	)
 
 
@@ -140,12 +150,12 @@ begin
 	for ipnt = 1 : 13
 		geosample = GeoRegion("OTREC_wrf_PAC2ATL$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
-		axs[1].plot(ilon.+360,ilat,c="brown")
+		axs[1].plot(ilon.+360,ilat,c="kiwi green")
 	end
 	for ipnt = 1 : 11
 		geosample = GeoRegion("OTREC_wrf_CrossITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
-		axs[1].plot(ilon.+360,ilat,c="b")
+		axs[1].plot(ilon.+360,ilat,c="blue3")
 	end
 	
 	axs[1].plot(x,y,lw=0.5,c="k")
@@ -172,10 +182,13 @@ begin
 	ix = fig.add_axes([0.635,0.632,0.21,0.30])
 	c = ix.pcolormesh(
 		lsd_sml.lon,lsd_sml.lat,lsd_sml.z'/1000,
-		levels=lvls,cmap="delta",extend="both"
+		levels=lvls,cmap="bukavu",extend="both"
 	)
 	ix.plot(x,y,lw=0.5,c="k")
 	ix.scatter(infocr[:,2],infocr[:,3],s=10,zorder=4,c="r")
+	ix.plot(slon.+360,slat,lw=2,c="orange")
+	ix.plot(blon1.+360,blat1,lw=2,c="orange",linestyle=":")
+	ix.plot(blon4.+360,blat4,lw=2,c="orange",linestyle=":")
 
 	ix.text(275.2,10.15,"EEFMB",c="k",size=7,bbox=textdict)
 	ix.text(275.4,9.65,"CGFI",c="k",size=7,bbox=textdict)
@@ -196,11 +209,12 @@ begin
 	ix.pcolormesh(
 		lsd_big.lon[1:10:end],lsd_big.lat[1:10:end],
 		lsd_big.z[1:10:end,1:10:end]'/1000,alpha=0.3,
-		levels=lvls,cmap="delta",extend="both"
+		levels=lvls,cmap="bukavu",extend="both"
 	)
 	ix.pcolormesh(
-		lsd_d02.lon.+360,lsd_d02.lat,lsd_d02.z'/1000,
-		levels=lvls,cmap="delta",extend="both"
+		lsd_d02.lon[1:10:end].+360,lsd_d02.lat[1:10:end],
+		lsd_d02.z[1:10:end,1:10:end]'/1000,
+		levels=lvls,cmap="bukavu",extend="both"
 	)
 
 	ix.plot(x,y,lw=0.5,c="k")
@@ -239,5 +253,6 @@ end
 # ╠═76e35851-71a0-4b89-98bb-9a82bf34bd34
 # ╠═7b4eaccc-7f7e-4c82-9ec5-f82834c75098
 # ╠═dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
+# ╠═c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
-# ╟─d7755534-3565-4011-b6e3-e131991008db
+# ╠═d7755534-3565-4011-b6e3-e131991008db
