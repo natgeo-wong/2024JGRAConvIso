@@ -1,204 +1,157 @@
 ### A Pluto.jl notebook ###
-# v0.19.46
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 9db63111-71ec-43b9-9174-d4921191eafd
+# ╔═╡ b3bc56eb-43a7-4736-bd66-704529911d60
 begin
 	using Pkg; Pkg.activate()
 	using DrWatson
 	md"Using DrWatson to ensure reproducibility between different machines ..."
 end
 
-# ╔═╡ da16ef31-2091-4c36-b3d0-05f4197771f6
+# ╔═╡ 9071763e-f6ad-4468-ae48-369307a85263
 begin
 	@quickactivate "2024GLConvIso"
+	using Dates
 	using DelimitedFiles
 	using ERA5Reanalysis
+	using NASAPrecipitation
 	using NCDatasets
 	using Printf
 	using Statistics
 	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
 	md"Loading modules for the 2024GLConvIso project..."
 end
 
-# ╔═╡ e0a4eb5e-467e-11ec-21da-af325ae0fd15
+# ╔═╡ a8431d46-46fe-11ec-2b8d-e39caffdabec
 md"
-# 02c. GPM Climatology for various OTREC Stations
+# Figure 2. Station Rainfall and Isotopes
 
-Tex
+In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
 "
 
-# ╔═╡ 19b04d89-520c-4fdc-8152-3e410ae08b8f
+# ╔═╡ 4579f773-e2b4-4b1f-a8c1-485341d451fc
 begin
-	coast = readdlm(datadir("coast.cst"),comments=true)
-	clon  = coast[:,1]
-	clat  = coast[:,2]
-	md"Preloading coastline data"
+	coast = readdlm(datadir("coast.cst"),comments=true,comment_char='#')
+	x = coast[:,1]
+	y = coast[:,2]
+	md"Loading coastlines data ..."
 end
 
-# ╔═╡ a567368e-ec0e-4944-9c1f-be1cfe9c5d1d
-md"
-### A. Loading $p_\omega$ Data
-"
+# ╔═╡ 7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
+npd = IMERGFinalHH(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
 
-# ╔═╡ 4c887a8c-c057-4695-8126-8881a92220a8
-begin
-	eds = NCDataset(datadir("p_wwgt-compiledera5.nc"))
-	lon = eds["longitude"][:]
-	lat = eds["latitude"][:]
-	pωe = eds["p_wwgt"][:,:]
-	close(eds)
-	md"Loading ERA5 $p_\omega$ data ..."
-end
+# ╔═╡ c0799dcd-7c88-4f75-ac19-76b615ff4454
+e5ds = ERA5Hourly(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
 
-# ╔═╡ a443e74d-263b-4c83-8cbd-f482cda0ff79
-md"
-### B. Extracting ERA5 Tropical Data into OTREC Region
-"
+# ╔═╡ 538d96e5-ed7b-477a-8f3a-959a9b978ec5
+geo = GeoRegion("OTREC_wrf_d02",path=srcdir())
 
-# ╔═╡ 4de46224-f340-4437-b4c8-7b53440f74d0
-e5ds = ERA5Dummy(path=datadir())
-
-# ╔═╡ 9d55b585-71d0-42ff-b045-5f7ddde29ba6
-geo = GeoRegion("OTREC")
-
-# ╔═╡ b06ef4a2-c61d-4fb4-96f3-aaf9ceb1d8a4
+# ╔═╡ 9a455f45-592c-43ab-a71c-d1de27bf8552
 egeo = ERA5Region(geo)
 
-# ╔═╡ a92c0cdd-fcea-4bcb-ac1d-e467eb26da6b
-lsd = getLandSea(e5ds,egeo)
+# ╔═╡ a822f787-214a-4ef3-ba54-b899e890aeff
+nlsd = getLandSea(npd,geo)
 
-# ╔═╡ 336a4b18-bc1a-4c76-88e0-578f9971c5da
-ggrd = RegionGrid(geo,lon,lat)
+# ╔═╡ 5260b50e-7436-4afa-96b4-3e9ac1d26229
+elsd = getLandSea(e5ds,egeo)
 
-# ╔═╡ ef6d666b-8a64-461e-9fb5-440748135683
+# ╔═╡ 0e89ce44-1788-4744-8170-cccb4aecd220
 begin
-	pω_OTREC = extractGrid(pωe,ggrd)
-	pω_OTREC[lsd.z.>500] .= NaN
-	md"Extracting ERA5 $p_\omega$ for OTREC Region"
-end
-
-# ╔═╡ 7e69c41b-6e5e-4d5b-8cda-2b5d65ddf6c5
-md"
-### C. Binning WRF into OTREC ERA5 Grid
-"
-
-# ╔═╡ f2d6e36b-e12f-4c24-81a8-5e03395add53
-begin
-	wwgtp = zeros(length(ggrd.lon),length(ggrd.lat))
-	rain  = zeros(length(ggrd.lon),length(ggrd.lat))
-	md"Preallocation of arrays for weighted pressure ..."
-end
-
-# ╔═╡ 4d5f7822-4ccf-406f-84d7-1edd8cd3d38b
-md"
-### D. Plotting
-"
-
-# ╔═╡ dd4098d9-fae9-4132-9157-06f063a9e129
-imo = 10
-
-# ╔═╡ 0cbc9af9-5bbc-484d-b9c0-0474831c5ced
-begin
-	wds = NCDataset(datadir("wrf","grid.nc"))
-	wln = wds["longitude"][:,:]; nx,ny = size(wln)
-	wlt = wds["latitude"][:,:]
-	close(wds)
-	wds = NCDataset(datadir("p_wwgt-compiledwrf-monthly.nc"))
-	pωw  = wds["p_wwgt"][:,:,imo]
-	prcp = wds["RAINNC"][:,:,imo]
-	close(wds)
-	md"Loading WRF $p_\omega$ data ..."
-end
-
-# ╔═╡ 93fa8a76-03d6-47b7-8e01-6c72f3af09de
-begin
-	ipnt_lon = zeros(Int,nx,ny)
-	ipnt_lat = zeros(Int,nx,ny)
-	ind      = zeros(Bool,nx,ny)
-	for ilat = 1 : ny, ilon = 1 : nx
-		ipnt_lon[ilon,ilat] = argmin(abs.(wln[ilon,ilat].-ggrd.lon.+360))
-		ipnt_lat[ilon,ilat] = argmin(abs.(wlt[ilon,ilat].-ggrd.lat))
+	prcp  = zeros(length(nlsd.lon),length(nlsd.lat))
+	dtvec = npd.start : Day(1) : npd.stop
+	for idt in dtvec
+		ids = read(npd,geo,idt)
+		prcp[:,:] += mean(ids["precipitation"][:,:,:],dims=3) * 86400
+		close(ids)
 	end
-	md"Finding closest ERA5 points to each of the WRF points ..."
+	prcp ./= length(dtvec)
 end
 
-# ╔═╡ 0972ac7d-235b-4121-9e40-210aac89ecad
+# ╔═╡ d982d95e-e9d8-4e5b-a706-0589a4eb4df8
 begin
-	for ilat = 1 : length(ggrd.lat), ilon = 1 : length(ggrd.lon)
-		ind = (ipnt_lon.==ilon).&(ipnt_lat.==ilat)
-		iipωw = @view pωw[ind]
-		iprcp = @view prcp[ind]
-		wwgtp[ilon,ilat] = mean(iipωw[.!isnan.(iipωw)])
-		rain[ilon,ilat]  = mean(iprcp[.!isnan.(iprcp)])
+	wnds = NCDataset(datadir("wrf","regridded","gpm-RAINNC-20190801_20201231.nc"))
+	wprcp = dropdims(mean(wnds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
+	close(wnds)
+end
+
+# ╔═╡ 5c9367e4-35a7-4e5a-83e6-ff70a108e340
+begin
+	eprcp = zeros(length(elsd.lon),length(elsd.lat))
+	edtvec = e5ds.start : Month(1) : e5ds.stop
+	evar = SingleVariable("tp")
+	for idt in edtvec
+		ids = read(e5ds,evar,egeo,idt)
+		eprcp[:,:] += sum(ids[evar.ID][:,:,:],dims=3) * 1000
+		close(ids)
 	end
-	wwgtp[(lsd.z.>500) .| (rain.<(5))] .= NaN
-	md"Regridding/binning $p_\omega$ into ERA5 Grid"
+	eprcp ./= length(dtvec)
 end
 
-# ╔═╡ b87f043f-3994-4587-bfde-92f2808d27e7
+# ╔═╡ 6c91263c-a1e2-41f6-83f1-e69e55ef0c38
 begin
-	pplt.close(); fig,axs = pplt.subplots(ncols=3,axwidth=1.5)
+	weds = NCDataset(datadir("wrf","regridded","era-RAINNC-20190801_20201231.nc"))
+	weprcp = dropdims(mean(weds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
+	close(weds)
+end
+
+# ╔═╡ b74efe40-6288-4b27-b757-5d0771f2552e
+begin
+	asp = (geo.N-geo.S+2)/(geo.E-geo.W+2)
+	pplt.close(); fig,axs = pplt.subplots(nrows=2,ncols=3,axwidth=1.5,aspect=asp)
 	
-	c1 = axs[1].pcolormesh(
-		ggrd.lon,ggrd.lat,pω_OTREC'/100,
-		levels=450:25:750,cmap="drywet_r",extend="both"
-	)
-	axs[2].pcolormesh(
-		ggrd.lon,ggrd.lat,wwgtp'/100,
-		levels=450:25:750,cmap="drywet_r",extend="both"
-	)
-	c2 = axs[3].pcolormesh(
-		ggrd.lon,ggrd.lat,wwgtp'/100 .- pω_OTREC'/100,
-		levels=-150:25:150,cmap="rdbu",extend="both"
-	)
+	c1 = axs[1].pcolormesh(nlsd.lon,nlsd.lat,prcp',levels=2:2:30,cmap="Blues",extend="both")
+	axs[2].pcolormesh(nlsd.lon,nlsd.lat,wprcp',levels=2:2:30,cmap="Blues",extend="both")
+	c2 = axs[3].pcolormesh(nlsd.lon,nlsd.lat,(wprcp.-prcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
+	
+	axs[4].pcolormesh(elsd.lon,elsd.lat,eprcp',levels=2:2:30,cmap="Blues",extend="both")
+	axs[5].pcolormesh(elsd.lon,elsd.lat,weprcp',levels=2:2:30,cmap="Blues",extend="both")
+	axs[6].pcolormesh(elsd.lon,elsd.lat,(weprcp.-eprcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
 
-	axs[1].format(ltitle="(a) ERA5")
-	axs[2].format(ltitle="(b) WRF")
-	axs[3].format(ltitle="(c) WRF - ERA5")
+	axs[1].format(ultitle="(a) IMERGv7")
+	axs[2].format(ultitle="(b) Regridded WRF")
+	axs[3].format(ultitle="(c) WRF - IMERGv7")
+	axs[4].format(ultitle="(d) ERA5")
+	axs[5].format(ultitle="(e) Regridded WRF")
+	axs[6].format(ultitle="(f) WRF - ERA5")
 
 	for ax in axs
-		ax.plot(clon,clat,c="k",lw=1)
+		ax.plot(x,y,lw=0.5,c="k")
 		ax.format(
-			xlim=(270,285),xlocator=270:5:285,xlabel=L"Longitude / $\degree$",
-			ylim=(0,15),ylocator=0:5:15,ylabel=L"Latitude / $\degree$"
+			xlim=(geo.W-1,geo.E+1),xlabel=L"Longitude / $\degree$",
+			ylim=(geo.S-1,geo.N+1),ylabel=L"Latitude / $\degree$",
+			suptitle = "Mean Rainfall Rate (2019 Aug - 2020 Dec)"
 		)
 	end
 
-	axs[2].colorbar(c1,label=L"$p_\omega$ / hPa")
-	axs[3].colorbar(c2,label=L"$\Delta p_\omega$ / hPa")
+	axs[3].colorbar(c1,label=L"$\mu$ / mm day$^{-1}$")
+	axs[6].colorbar(c2,label=L"$\Delta$ / mm day$^{-1}$")
 	
-	fig.savefig(projectdir("figures","figS3-era5vswrf.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS3-era5vswrf.png"))
+	fig.savefig(projectdir("figures","figS2-imergvswrfvsera.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS2-imergvswrfvsera.png"))
 end
 
 # ╔═╡ Cell order:
-# ╟─e0a4eb5e-467e-11ec-21da-af325ae0fd15
-# ╟─9db63111-71ec-43b9-9174-d4921191eafd
-# ╟─da16ef31-2091-4c36-b3d0-05f4197771f6
-# ╟─19b04d89-520c-4fdc-8152-3e410ae08b8f
-# ╟─a567368e-ec0e-4944-9c1f-be1cfe9c5d1d
-# ╟─4c887a8c-c057-4695-8126-8881a92220a8
-# ╠═0cbc9af9-5bbc-484d-b9c0-0474831c5ced
-# ╟─a443e74d-263b-4c83-8cbd-f482cda0ff79
-# ╟─4de46224-f340-4437-b4c8-7b53440f74d0
-# ╠═9d55b585-71d0-42ff-b045-5f7ddde29ba6
-# ╟─b06ef4a2-c61d-4fb4-96f3-aaf9ceb1d8a4
-# ╟─a92c0cdd-fcea-4bcb-ac1d-e467eb26da6b
-# ╟─336a4b18-bc1a-4c76-88e0-578f9971c5da
-# ╟─ef6d666b-8a64-461e-9fb5-440748135683
-# ╟─7e69c41b-6e5e-4d5b-8cda-2b5d65ddf6c5
-# ╟─93fa8a76-03d6-47b7-8e01-6c72f3af09de
-# ╠═f2d6e36b-e12f-4c24-81a8-5e03395add53
-# ╠═0972ac7d-235b-4121-9e40-210aac89ecad
-# ╟─4d5f7822-4ccf-406f-84d7-1edd8cd3d38b
-# ╠═dd4098d9-fae9-4132-9157-06f063a9e129
-# ╠═b87f043f-3994-4587-bfde-92f2808d27e7
+# ╟─a8431d46-46fe-11ec-2b8d-e39caffdabec
+# ╟─b3bc56eb-43a7-4736-bd66-704529911d60
+# ╟─9071763e-f6ad-4468-ae48-369307a85263
+# ╟─4579f773-e2b4-4b1f-a8c1-485341d451fc
+# ╠═7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
+# ╠═c0799dcd-7c88-4f75-ac19-76b615ff4454
+# ╠═538d96e5-ed7b-477a-8f3a-959a9b978ec5
+# ╠═9a455f45-592c-43ab-a71c-d1de27bf8552
+# ╟─a822f787-214a-4ef3-ba54-b899e890aeff
+# ╟─5260b50e-7436-4afa-96b4-3e9ac1d26229
+# ╟─0e89ce44-1788-4744-8170-cccb4aecd220
+# ╠═d982d95e-e9d8-4e5b-a706-0589a4eb4df8
+# ╟─5c9367e4-35a7-4e5a-83e6-ff70a108e340
+# ╠═6c91263c-a1e2-41f6-83f1-e69e55ef0c38
+# ╠═b74efe40-6288-4b27-b757-5d0771f2552e

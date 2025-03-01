@@ -1,135 +1,127 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 9db63111-71ec-43b9-9174-d4921191eafd
+# ╔═╡ b3bc56eb-43a7-4736-bd66-704529911d60
 begin
 	using Pkg; Pkg.activate()
 	using DrWatson
 	md"Using DrWatson to ensure reproducibility between different machines ..."
 end
 
-# ╔═╡ da16ef31-2091-4c36-b3d0-05f4197771f6
+# ╔═╡ 9071763e-f6ad-4468-ae48-369307a85263
 begin
 	@quickactivate "2024GLConvIso"
-	using DelimitedFiles
-	using NASAPrecipitation
+	using Dates
 	using NCDatasets
 	using Printf
 	using Statistics
 	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
 	md"Loading modules for the 2024GLConvIso project..."
 end
 
-# ╔═╡ e0a4eb5e-467e-11ec-21da-af325ae0fd15
+# ╔═╡ a8431d46-46fe-11ec-2b8d-e39caffdabec
 md"
-# 02c. GPM Climatology for various OTREC Stations
+# Figure 2. Station Rainfall and Isotopes
 
-Tex
+In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
 "
 
-# ╔═╡ a567368e-ec0e-4944-9c1f-be1cfe9c5d1d
+# ╔═╡ 5b392d8a-d68b-44df-ab57-d0e81aedd668
 md"
-### A. Defining the NASAPrecipitation Dataset
+### A. Loading the Processed Data
 "
 
-# ╔═╡ 5dfc4918-a20b-422e-b2bd-fa4805bd3f82
-npdv6 = IMERGMonthly(start=Date(2001),stop=Date(2020),path=datadir(),v6=true)
-
-# ╔═╡ dd658b87-edff-42a1-a0e0-4f05898c8929
-npdv7 = IMERGMonthly(start=Date(2001),stop=Date(2020),path=datadir())
-
-# ╔═╡ 8045657b-83e3-40be-a9ee-e5875d48f73f
+# ╔═╡ cceac73b-b7d9-4418-b145-d45d384b61b8
 begin
-	dt = npdv6.start : Year(1) : npdv6.stop
-	nt = length(dt)
-	md"Constructing date vectors ..."
+	ds = NCDataset(datadir("processed.nc"))
+	dtvec = ds["time"][:]
+	lon   = ds["longitude"][:]
+	lat   = ds["latitude"][:]
+	prcp  = ds["prcp"][:,:] 
+	prcpg = ds["prcpg"][:,:] 
+	prcps = ds["prcps"][:,:] 
+	δ18Oμ = ds["δ18Oμ"][:,:] 
+	δ18Oσ = ds["δ18Oσ"][:,:] 
+	δ2Hμ  = ds["δ2Hμ"][:,:] 
+	δ2Hσ  = ds["δ2Hσ"][:,:] 
+	close(ds)
+	md"Loading processed station and GPM rainfall and isotopic data ..."
 end
 
-# ╔═╡ c05d8e84-c595-42d5-934a-1a2a91f85d97
-geo = GeoRegion("OTREC")
-
-# ╔═╡ 665575fe-b149-410c-9bae-53dedf1ec264
-lsd = getLandSea(npdv7,geo)
-
-# ╔═╡ 0ec50c3d-55b1-4015-87ff-30f76412cd96
-md"
-### B. Loading Station Information
-"
-
-# ╔═╡ 704c7bcf-82cb-4662-aecf-540369e8a11b
+# ╔═╡ 0374f823-90a0-4dc6-be0e-9449a7fa7202
 begin
-	infody = stninfody(); nstn = size(infody,1)
-	md"Loading station location information ..."
-end
+	arr = [[1,1,1,2,3],[4,4,4,5,6],[7,7,7,8,9]]
+	pplt.close(); fig,axs = pplt.subplots(arr,aspect=3,axwidth=3,sharex=0,sharey=0,wspace=[0,0,1,8],hspace=[1,1])
 
-# ╔═╡ 450d68a4-5f3b-4c52-8847-d882787dbc0c
-begin
-	ilon = zeros(Int,nstn)
-	ilat = zeros(Int,nstn)
-	for istn = 1 : 4
-		ilon[istn] = argmin(abs.(lsd.lon.-infody[istn,2]))
-		ilat[istn] = argmin(abs.(lsd.lat.-infody[istn,3]))
+	for istn in 1 
+		axs[1].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[1].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[2].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[3].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
 	end
-	md"Finding nearest longitude/latitude coordinate points"
-end
 
-# ╔═╡ 8b509f24-da2a-40fd-a69a-d5e1c7356d11
-md"
-### C. Loading the Precipitation Data
-"
-
-# ╔═╡ e095a808-38e9-4015-9224-6295f75470dd
-begin
-	pdata = zeros(12,4,2)
-	for tt in dt
-		ids = read(npdv6,geo,tt)
-		for istn = 1 : 4
-			pdata[:,istn,1] .+= ids["precipitation"][ilon[istn],ilat[istn],:] * 3600 / 20
-		end
-		close(ids)
-		ids = read(npdv7,geo,tt)
-		for istn = 1 : 4
-			pdata[:,istn,2] .+= ids["precipitation"][ilon[istn],ilat[istn],:] * 3600 / 20
-		end
-		close(ids)
+	for istn in 2 : 4
+		axs[4].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[4].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[5].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[6].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
 	end
-	md"Loading precipitation data ..."
-end
 
-# ╔═╡ 9139653a-d357-456e-bda8-440e2f088403
-begin
-	pplt.close(); ft,at = pplt.subplots(aspect=2,axwidth=3)
+	for istn in 5 : 12
+		axs[7].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[7].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[8].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[9].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
+	end
 
-	at[1].scatter(1:12,pdata[:,2:4,2],label=["Quibdó","Bahía Solano","Buenaventura"],legend="r",legend_kw=Dict("ncol"=>1,"frame"=>false))
-	at[1].scatter(1:12,pdata[:,1,2],c="k",label="San Andres",legend="r")
-	at[1].format(ylim=(0,1),ylabel=L"Precipitation / mm hr$^{-1}$",xlabel="Month",xlocator=1:12)
+	for ii in [1,4,7]
+		axs[ii].format(ylim=(-10,210),xlim=(Date(2019,1),Date(2021,12)))
+	end
+
+	for ii in [1,2,3,4,5,6]
+		axs[ii].format(xticklabels=[])
+	end
+
+	for ii in [2,5,8]
+		axs[ii].format(xlim=(-10,210),ylim=(-10,210),ytickloc="r")
+	end
+
+	for ii in [3,6,9]
+		axs[ii].format(xlim=(-20,2),ylim=(-150,25),ytickloc="r")
+	end
+
+	for ax in axs
+		ax.format(xminorlocator=[])
+	end
+
+	axs[1].format(ltitle="(a) Time-Series", ultitle="(i) San Andres",)
+	axs[2].format(ltitle="(b) Station vs GPM")
+	axs[3].format(ltitle=L"(c) $\delta^2$H vs $\delta^{18}$O")
+	axs[4].format(ultitle="(ii) Colombia Daily Stations",ylabel=L"Rain Rate / mm day$^{-1}$")
+	axs[5].format(ylabel=L"GPM Rainfall / mm day$^{-1}$")
+	axs[6].format(ylabel=L"$\delta^2$H")
+	axs[7].format(ultitle="(iii) Costa Rica Stations")
+	axs[8].format(xlabel=L"Station Rainfall / mm day$^{-1}$")
+	axs[9].format(xlabel=L"$\delta^{18}$O")
+		
 	
-	ft.savefig(projectdir("figures","figS1-stationgpm.png"),transparent=false,dpi=200)
-	load(projectdir("figures","figS1-stationgpm.png"))
+	fig.savefig(projectdir("figures","figS1-stationvsgpm.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS1-stationvsgpm.png"))
 end
 
 # ╔═╡ Cell order:
-# ╟─e0a4eb5e-467e-11ec-21da-af325ae0fd15
-# ╟─9db63111-71ec-43b9-9174-d4921191eafd
-# ╟─da16ef31-2091-4c36-b3d0-05f4197771f6
-# ╟─a567368e-ec0e-4944-9c1f-be1cfe9c5d1d
-# ╟─5dfc4918-a20b-422e-b2bd-fa4805bd3f82
-# ╠═dd658b87-edff-42a1-a0e0-4f05898c8929
-# ╟─8045657b-83e3-40be-a9ee-e5875d48f73f
-# ╟─c05d8e84-c595-42d5-934a-1a2a91f85d97
-# ╟─665575fe-b149-410c-9bae-53dedf1ec264
-# ╟─0ec50c3d-55b1-4015-87ff-30f76412cd96
-# ╟─704c7bcf-82cb-4662-aecf-540369e8a11b
-# ╟─450d68a4-5f3b-4c52-8847-d882787dbc0c
-# ╟─8b509f24-da2a-40fd-a69a-d5e1c7356d11
-# ╟─e095a808-38e9-4015-9224-6295f75470dd
-# ╟─9139653a-d357-456e-bda8-440e2f088403
+# ╟─a8431d46-46fe-11ec-2b8d-e39caffdabec
+# ╟─b3bc56eb-43a7-4736-bd66-704529911d60
+# ╟─9071763e-f6ad-4468-ae48-369307a85263
+# ╟─5b392d8a-d68b-44df-ab57-d0e81aedd668
+# ╟─cceac73b-b7d9-4418-b145-d45d384b61b8
+# ╠═0374f823-90a0-4dc6-be0e-9449a7fa7202

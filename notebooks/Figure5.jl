@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -21,7 +21,7 @@ begin
 	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
@@ -40,63 +40,149 @@ begin
 end
 
 # ╔═╡ 4319fd0e-fd9f-424e-9286-3b3b5a844b73
-function extract(geoname,iso,days)
+function extract(geoname,days)
 
-	dystr  = "-smooth_$(@sprintf("%02d",days))days"
+	dystr  = "daily-20190801_20201231-smooth_$(@sprintf("%02d",days))days"
+
+	ds = NCDataset(datadir("wrf","processed","$geoname-dhodq-$(dystr).nc"))
+	p = ds["P"][:,:] ./ 100
+	dhdq = ds["dHDOdH2O"][:,:]
+	dodq = ds["dO18dH2O"][:,:]
+	close(ds)
+
+	return p,dhdq,dodq
+	
+end
+
+# ╔═╡ 887b52b3-8ea4-444d-8a6d-96fb6acb37f3
+function calculatebufferweights(shiftsteps)
+
+    buffer = Int(ceil((shiftsteps-1)/2))
+    weights = ones(buffer*2+1)
+    if buffer >= (shiftsteps/2)
+        weights[1] = 0.5
+        weights[end] = 0.5
+    end
+    weights /= shiftsteps
+    return buffer,weights
+
+end
+
+# ╔═╡ f224f902-cd89-4f4a-aedb-60ebbc79f4f5
+function smooth(data::AbstractVector,days)
+
+	buffer,weights = calculatebufferweights(days)
+
+	ndt = length(data)
+	ndata = fill(NaN,ndt)
+	smth  = zeros(1+buffer*2)
+
+	for ii in (1+buffer) : (ndt-buffer)
+
+		for ismth = 0 : (buffer*2)
+			smth[ismth+1] = data[ii+ismth-buffer] * weights[ismth+1]
+		end
+		ndata[ii] = sum(smth)
+
+	end
+
+	return ndata
+
+end
+
+# ╔═╡ 95de152a-39ce-448a-a931-ba393f86b629
+function extractbudget(geoname,days)
+
+	dystr  = "daily-20190801_20201231-smooth_$(@sprintf("%02d",days))days"
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-$(iso)dhqdp$(dystr).nc"
+		"$geoname-QBUDGET-20190801_20201231.nc"
 	))
-	p = ds["P"][:]
-	hdq = ds["$(iso)hq"][:,:]
-	dhqdp = ds["$(iso)dhqdp"][:,:]
+	prcp = smooth(dropdims(sum(reshape(ds["P"][:],24,:),dims=1),dims=1),days)
+	evap = smooth(dropdims(sum(reshape(ds["E"][:],24,:),dims=1),dims=1),days)
 	close(ds)
 
-	return p,hdq,dhqdp * 1e2
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-∇decompose-20190801_20201231.nc"
+	))
+	advc = smooth(dropdims(mean(reshape(ds["ADV"][:],24,:),dims=1),dims=1),days) * 86400
+	divg = smooth(dropdims(mean(reshape(ds["DIV"][:],24,:),dims=1),dims=1),days) * 86400
+	close(ds)
+
+	dsp = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-p_wwgt-$dystr.nc"
+	))
+	pwgt = dsp["p_wwgt"][:] / 100
+	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
+	pwgt = dsp["σ_wwgt"][:]
+	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
+	close(dsp)
+
+	return pwgt,prcp,evap,advc,divg
 	
 end
 
 # ╔═╡ 5bf90248-6ad6-4851-9c56-613d69f83d4b
 function plotdqdp(
-	axes,ii,dqdpbin;
+	axes,ii;
 	ID, days=0, box = false, bnum = 1, cinfo = false
 )
 
-	binHDO = zeros(length(dqdpbin)-1,50)
-	binO18 = zeros(length(dqdpbin)-1,50)
-	binplt = (dqdpbin[1:(end-1)] .+ dqdpbin[2:end])/2
+	dhdqbin = 0 : 0.01 : 1.2
+	dodqbin = 0.9 : 0.001 : 1.02
+	pbin    = vcat(0 : 50 : 550, 600 : 20 : 1000)
+	binHDO = zeros(length(dhdqbin)-1,length(pbin)-1)
+	binO18 = zeros(length(dodqbin)-1,length(pbin)-1)
+	dhdqbinplt = (dhdqbin[1:(end-1)] .+ dhdqbin[2:end])/2
+	dodqbinplt = (dodqbin[1:(end-1)] .+ dodqbin[2:end])/2
+	pbinplt = (pbin[1:(end-1)] .+ pbin[2:end])/2
+
+	valid = readdlm(datadir("wrf","wrfvscalc.txt"))
 
 	for stn in ID
 		stnstr = @sprintf("%02d",stn)
 		if box
 			for ibox = 1 : bnum
-				boxstr = @sprintf("%02d",ibox)
-				geoname = "OTREC_STN$(stnstr)_$(boxstr)"
-				p,hdq,dhqdp = extract(geoname,"HDO_",days)
-				for jj = 1 : 50
-					binHDO[:,jj] += fit(Histogram,dhqdp[jj,:],dqdpbin).weights
-				end
-				p,hdq,dhqdp = extract(geoname,"O18_",days)
-				for jj = 1 : 50
-					binO18[:,jj] += fit(Histogram,dhqdp[jj,:],dqdpbin./10).weights
+				if valid[stn,ibox] < 0.15
+					boxstr = @sprintf("%d",ibox)
+					geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
+					p,dhdq,dodq = extract(geoname,days)
+					pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
+					it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))# .& (advc.>0) .& (divg.<0)
+					for jj = 1 : 49
+						binHDO[:,:] += fit(
+							Histogram,(dhdq[jj,it],p[jj,it]),
+							(dhdqbin,pbin)
+						).weights
+						binO18[:,:] += fit(
+							Histogram,(dodq[jj,it],p[jj,it]),
+							(dodqbin,pbin)
+						).weights
+					end
 				end
 			end
 		else
-			geoname = "OTREC_STN$stnstr"
-			p,hdq,dhqdp = extract(geoname,"HDO_",days)
-			for jj = 1 : 50
-				binHDO[:,jj] += fit(Histogram,dhqdp[jj,:],dqdpbin).weights
-			end
-			p,hdq,dhqdp = extract(geoname,"O18_",days)
-			for jj = 1 : 50
-				binO18[:,jj] += fit(Histogram,dhqdp[jj,:],dqdpbin./10).weights
+			geoname = "OTREC_wrf_stn$stnstr"
+			p,dhdq,dodq = extract(geoname,days)
+			pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
+			it = (prcp.>2.5) .& (.!isnan.(pwgt)) .& (advc.>0) .& (divg.<0)
+			for jj = 1 : 49
+				binHDO[:,:] += fit(
+					Histogram,(dhdq[jj,it],p[jj,it]),
+					(dhdqbin,pbin)
+				).weights
+				binO18[:,:] += fit(
+					Histogram,(dodq[jj,it],p[jj,it]),
+					(dodqbin,pbin)
+				).weights
 			end
 		end
 	end
-	lvls = [0,1,sqrt(2),2,2*sqrt(2.5),5,7*sqrt(2),10,10*sqrt(2),20,20*sqrt(2.5),50]
-	c1 = axes[2*ii-1].pcolormesh(binplt,1:50,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=lvls)
-	c2 = axes[2*ii].pcolormesh(binplt./10,1:50,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=lvls)
+	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=0:10)
+	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=0:10)
 
 	if cinfo
 		return c1,c2
@@ -111,29 +197,29 @@ function axesformat!(axes)
 
 	for ax in axes
 		ax.format(
-			ylim=(1,50),ylabel="Model Level",
-			xlabel=L"$\partial_p(q_h/q)$ / $\perthousand$ hPa$^{-1}$",
+			xlim=(-0.2,1.2),ylim=(1000,500),ylabel="Pressure / hPa",
+			xlabel=L"$\partial_pq_h/\partial_pq$ / VSMOW",
 			suptitle="7-Day Moving Average"
 		)
 	end
 
 	for ii = 1 : 6
-		axes[2*ii-1].format(xlim=(-0.2,1.2),lrtitle="HDO",xlocator=-0.5:0.5:1.5)
-		axes[2*ii].format(xlim=(-0.2,1.2)./10,lrtitle="O18",xlocator=-0.05:0.05:.15)
+		axes[2*ii].format(xlim=(0.5,1.1),lltitle="HDO")
+		axes[2*ii-1].format(xlim=(0.92,1.01),lltitle="O18")
 	end
 
-	axes[2].format(ultitle="(a) San Andres")
-	axes[4].format(ultitle="(b) Buenaventura")
-	axes[4].text(0.032,39.5,"Bahia Solano",fontsize=10)
-	axes[6].format(ultitle="(c) Quibdo")
-	axes[8].format(ultitle="(d) EEFMB")
-	axes[8].text(0.032,39.5,"ADMQ",fontsize=10)
-	axes[8].text(0.032,34.5,"CGFI",fontsize=10)
-	axes[10].format(ultitle="(e) Cahuita")
-	axes[10].text(0.032,39.5,"Bataan",fontsize=10)
-	axes[10].text(0.032,34.5,"Limon",fontsize=10)
-	axes[12].format(ultitle="(f) Liberia")
-	axes[12].text(0.024,39.5,"OSA",fontsize=10)
+	axes[2].format(ultitle="(b) San Andres")
+	axes[4].format(ultitle="(c) Buenaventura")
+	axes[4].text(0.715,610,"Bahia Solano",fontsize=10)
+	axes[6].format(ultitle="(d) Quibdo")
+	axes[8].format(ultitle="(f) EEFMB")
+	axes[8].text(0.69,610,"ADMQ",fontsize=10)
+	axes[8].text(0.69,660,"CGFI",fontsize=10)
+	axes[10].format(ultitle="(g) Cahuita")
+	axes[10].text(0.72,610,"Bataan",fontsize=10)
+	axes[10].text(0.72,660,"Limon",fontsize=10)
+	axes[12].format(ultitle="(h) Liberia")
+	axes[12].text(0.72,610,"OSA",fontsize=10)
 
 	return
 
@@ -147,18 +233,18 @@ begin
 	)
 
 	c1,_ =
-	plotdqdp(axs,1,-1:0.05:1.5,ID=1,box=true,bnum=4,days=7,cinfo=true)
-	plotdqdp(axs,2,-1:0.05:1.5,ID=3:4,box=true,bnum=4,days=7)
-	plotdqdp(axs,3,-1:0.05:1.5,ID=2,box=true,bnum=4,days=7)
-	plotdqdp(axs,4,-1:0.05:1.5,ID=5:7,box=true,bnum=4,days=7)
-	plotdqdp(axs,5,-1:0.05:1.5,ID=9:11,box=true,bnum=4,days=7)
-	plotdqdp(axs,6,-1:0.05:1.5,ID=[8,12],box=true,bnum=4,days=7)
+	plotdqdp(axs,1,ID=1,box=true,bnum=4,days=7,cinfo=true)
+	plotdqdp(axs,2,ID=3:4,box=true,bnum=4,days=7)
+	plotdqdp(axs,3,ID=2,box=true,bnum=4,days=7)
+	plotdqdp(axs,4,ID=5:7,box=true,bnum=4,days=7)
+	plotdqdp(axs,5,ID=9:11,box=true,bnum=4,days=7)
+	plotdqdp(axs,6,ID=[8,12],box=true,bnum=4,days=7)
 	
 	axesformat!(axs)
 
 	fig.colorbar(c1,length=0.75,locator=[0,1,2,5,10,20,50],label="Probability / %")
-	fig.savefig(projectdir("figures","fig5-dhqdp.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig5-dhqdp.png"))
+	fig.savefig(projectdir("figures","fig5-dhdq.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig5-dhdq.png"))
 end
 
 # ╔═╡ Cell order:
@@ -167,6 +253,9 @@ end
 # ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╟─95de152a-39ce-448a-a931-ba393f86b629
+# ╟─887b52b3-8ea4-444d-8a6d-96fb6acb37f3
+# ╟─f224f902-cd89-4f4a-aedb-60ebbc79f4f5
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─8c211620-d632-4f23-85f5-a702faf82270

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.45
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -22,7 +22,7 @@ begin
 	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
@@ -83,48 +83,59 @@ function extract(geoname,iso,days)
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-$(iso)QBUDGET.nc"
+		"$geoname-$(iso)QBUDGET-20190801_20201231.nc"
 	))
-	hvyp = smooth(dropdims(sum(reshape(ds["$(iso)P"][:],8,:),dims=1),dims=1),days)
+	hvyp = smooth(dropdims(sum(reshape(ds["$(iso)P"][:],24,:),dims=1),dims=1),days)
+	hvye = smooth(dropdims(sum(reshape(ds["$(iso)E"][:],24,:),dims=1),dims=1),days)
 	close(ds)
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-QBUDGET.nc"
+		"$geoname-QBUDGET-20190801_20201231.nc"
 	))
-	prcp = smooth(dropdims(sum(reshape(ds["P"][:],8,:),dims=1),dims=1),days)
+	prcp = smooth(dropdims(sum(reshape(ds["P"][:],24,:),dims=1),dims=1),days)
+	evap = smooth(dropdims(sum(reshape(ds["E"][:],24,:),dims=1),dims=1),days)
 	close(ds)
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-$(iso)∇decompose.nc"
+		"$geoname-$(iso)∇decompose-20190801_20201231.nc"
 	))
-	hvya = smooth(dropdims(mean(reshape(ds["$(iso)ADV"][:],8,:),dims=1),dims=1),days) * 86400
+	hvya = smooth(dropdims(mean(reshape(ds["$(iso)ADV"][:],24,:),dims=1),dims=1),days) * 86400
 	close(ds)
 
 	ds = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-∇decompose.nc"
+		"$geoname-∇decompose-20190801_20201231.nc"
 	))
-	advc = smooth(dropdims(mean(reshape(ds["ADV"][:],8,:),dims=1),dims=1),days) * 86400
-	close(ds)
-
-	ds = NCDataset(datadir(
-		"wrf","processed",
-		"$geoname-∇decompose.nc"
-	))
-	divg = smooth(dropdims(mean(reshape(ds["DIV"][:],8,:),dims=1),dims=1),days) * 86400
+	advc = smooth(dropdims(mean(reshape(ds["ADV"][:],24,:),dims=1),dims=1),days) * 86400
+	divg = smooth(dropdims(mean(reshape(ds["DIV"][:],24,:),dims=1),dims=1),days) * 86400
 	close(ds)
 
 	dsp = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-p_wwgt-daily-smooth_$(dystr)days.nc"
+		"$geoname-p_wwgt-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
+	pwgt = dsp["p_wwgt"][:] / 100
+	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
 	pwgt = dsp["σ_wwgt"][:]
 	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
-	return pwgt,prcp,advc,hvyp,hvya,divg
+	
+	# dsp = NCDataset(datadir(
+	# 	"wrf3","processed",
+	# 	"$geoname-wcoeff-daily-20190801_20201231-smooth_$(dystr)days.nc"
+	# ))
+	# wc = dsp["wcoeff"][:,:]
+	# close(dsp)
+	# wcconv = sum(wc[:,[1,3,5,7,9]],dims=2)[:];
+	# wctpbt = sum(wc[:,[2,4,6,8,10]],dims=2)[:];
+	# wcabs  = sqrt.(wcconv.^2 .+ wctpbt.^2)[:];
+	# wctpbt = wctpbt ./ wcabs
+	# ii = wcconv .< 0
+
+	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
 end
 
@@ -138,35 +149,39 @@ function binning!(
 	iso = "$(iso)_"
 	stnstr = @sprintf("%02d",ID)
 
+	valid = readdlm(datadir("wrf","wrfvscalc.txt"))[ID,:]
+
 	if box
 		for ibox = 1 : bnum
-			boxstr = @sprintf("%02d",ibox)
-			geoname = "OTREC_STN$(stnstr)_$(boxstr)"
-			pwgt,prcp,advc,hvyp,hvya,divg = extract(geoname,iso,days)
-			nt = length(prcp)
-		
-			for it = 1 : nt
-				if (prcp[it]>2.5) && !isnan(pwgt[it]) && (advc[it]>0) && (divg[it]<0)
-					rind = argmin(abs.(prcp[it]+advc[it].-rpnt))
-					pind = argmin(abs.(pwgt[it].-ppnt))
-					numstn[rind,pind] += 1
-					binstn[rind,pind] += hvyp[it] + hvya[it]
-					prcstn[rind,pind] += prcp[it] + advc[it]
+			if valid[ibox] < 0.15
+				boxstr = @sprintf("%0d",ibox)
+				geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
+				pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
+				nt = length(prcp)
+			
+				for it = 1 : nt
+					if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])# && (advc[it]>0) && (divg[it]<0)
+						rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
+						pind = argmin(abs.(pwgt[it].-ppnt))
+						numstn[rind,pind] += 1
+						binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
+						prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
+					end
 				end
 			end
 		end
 	else
-		geoname = "OTREC_STN$stnstr"
-		pwgt,prcp,advc,hvyp,hvya,divg = extract(geoname,iso,days)
+		geoname = "OTREC_wrf_stn$stnstr"
+		pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
 		nt = length(prcp)
 	
 		for it = 1 : nt
 			if (prcp[it]>2.5) && (advc[it]>0) && (divg[it]<0) && !isnan(pwgt[it])
-				rind = argmin(abs.(prcp[it].-rpnt))
+				rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
 				pind = argmin(abs.(pwgt[it].-ppnt))
 				numstn[rind,pind] += 1
-				binstn[rind,pind] += hvyp[it] + hvya[it]
-				prcstn[rind,pind] += prcp[it] + advc[it]
+				binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
+				prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
 			end
 		end
 	end
@@ -178,7 +193,7 @@ end
 # ╔═╡ 9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 function threshold!(
 	bin,num,prc;
-	numthresh = 5
+	numthresh = 10
 )
 
 	bin[num.<numthresh] .= 0
@@ -257,8 +272,8 @@ function axesformat!(axesnum)
 
 	for ax in axesnum
 		ax.format(
-			ylim=(1,0),xlim=(0,200),xlocator=0:100:200,ylabel=L"$\sigma_\omega$",
-			xlabel=L"$P + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$"
+			ylim=(1,0),xlim=(0,100),xlocator=0:100:200,ylabel=L"$\sigma_\omega$",
+			xlabel=L"$P - E + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$"
 		)
 	end
 
@@ -266,17 +281,17 @@ function axesformat!(axesnum)
 	axesnum[2].format(ultitle="(a) Colombia")
 	axesnum[4].format(ultitle="(b) San Andres")
 	axesnum[6].format(ultitle="(c) Buenaventura")
-	axesnum[6].text(72,0.220,"Bahia Solano",fontsize=10)
+	axesnum[6].text(45,0.270,"Bahia Solano",fontsize=10)
 	axesnum[8].format(ultitle="(d) Quibdo")
 	axesnum[10].format(ultitle="(e) Costa Rica")
 	axesnum[12].format(ultitle="(f) EEFMB")
-	axesnum[12].text(64,0.220,"ADMQ",fontsize=10)
-	axesnum[12].text(64,0.320,"CGFI",fontsize=10)
+	axesnum[12].text(39,0.270,"ADMQ",fontsize=10)
+	axesnum[12].text(39,0.390,"CGFI",fontsize=10)
 	axesnum[14].format(ultitle="(g) Cahuita")
-	axesnum[14].text(74,0.220,"Bataan",fontsize=10)
-	axesnum[14].text(74,0.320,"Limon",fontsize=10)
+	axesnum[14].text(45,0.270,"Bataan",fontsize=10)
+	axesnum[14].text(45,0.390,"Limon",fontsize=10)
 	axesnum[16].format(ultitle="(h) Liberia")
-	axesnum[16].text(73,0.220,"OSA",fontsize=10)
+	axesnum[16].text(45,0.270,"OSA",fontsize=10)
 
 	return
 
@@ -284,7 +299,7 @@ end
 
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
-	rbin = 0 : 20 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
+	rbin = 0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
 	pbin = 0 : 0.050 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
@@ -337,7 +352,7 @@ begin
 	
 	pplt.close(); f1,a1 = pplt.subplots(
 		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
-		aspect=0.5,axwidth=0.75,wspace=[0,1.5,0,1.5,0,1.5,0]
+		aspect=0.5,axwidth=0.6,wspace=[0,1.5,0,1.5,0,1.5,0]
 	)
 
 	c1_1,c1_2 = 
