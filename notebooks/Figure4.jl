@@ -160,7 +160,7 @@ function binning!(
 				nt = length(prcp)
 			
 				for it = 1 : nt
-					if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])# && (advc[it]>0) && (divg[it]<0)
+					if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])
 						rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
 						pind = argmin(abs.(pwgt[it].-ppnt))
 						numstn[rind,pind] += 1
