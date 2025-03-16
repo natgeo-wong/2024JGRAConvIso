@@ -133,7 +133,7 @@ function plotdqdp(
 
 	dhdqbin = 0 : 0.01 : 1.2
 	dodqbin = 0.9 : 0.001 : 1.02
-	pbin    = vcat(0 : 50 : 550, 600 : 20 : 1000)
+	pbin    = vcat(0 : 50 : 550, 600 : 50 : 1000)
 	binHDO = zeros(length(dhdqbin)-1,length(pbin)-1)
 	binO18 = zeros(length(dodqbin)-1,length(pbin)-1)
 	dhdqbinplt = (dhdqbin[1:(end-1)] .+ dhdqbin[2:end])/2
@@ -156,9 +156,9 @@ function plotdqdp(
 			).weights
 	end
 
-	lvls = vcat(0.1,0.5,1,2:2:10,15,20) .* 10
-	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,binHDO',extend="both",levels=lvls)
-	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,binO18',extend="both",levels=lvls)
+	lvls = vcat(0.1,0.5,1,2:2:10,15,20)
+	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1).*100)',extend="both",levels=lvls)
+	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1).*100)',extend="both",levels=lvls)
 
 	if cinfo
 		return c1,c2
@@ -173,7 +173,8 @@ function axesformat!(axes)
 
 	for ax in axes
 		ax.format(
-			xlim=(-0.2,1.2),ylim=(1000,500),ylabel="Pressure / hPa",
+			xlim=(-0.2,1.2),ylim=(1000,100),ylabel="Pressure / hPa",
+			ylocator=0:250:1000,
 			xlabel=L"$\partial_pq_h/\partial_pq$ / VSMOW",
 			suptitle="7-Day Moving Average",
 			rightlabels=["ITCZ","CrossITCZ","PAC2ATL"]
@@ -225,7 +226,7 @@ begin
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,loc="b",length=0.5,label="Number of Observations")
+	fig.colorbar(c1,loc="b",length=0.5,label="Percentage of Observations per Level / %")
 	fig.savefig(projectdir("figures","fig7-idealdhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig7-idealdhdq.png"))
 end
@@ -239,6 +240,6 @@ end
 # ╟─b754ea7c-f907-47ba-87d3-c0df3a92dc3d
 # ╟─7e114c52-4f6b-45e1-8081-abbc674d39c2
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╠═1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─8c211620-d632-4f23-85f5-a702faf82270

@@ -133,7 +133,7 @@ function plotdqdp(
 
 	dhdqbin = 0 : 0.02 : 1.2
 	dodqbin = 0.9 : 0.002 : 1.02
-	pbin    = vcat(0 : 50 : 550, 600 : 20 : 1000)
+	pbin    = vcat(0 : 50 : 550, 600 : 50 : 1000)
 	binHDO = zeros(length(dhdqbin)-1,length(pbin)-1)
 	binO18 = zeros(length(dodqbin)-1,length(pbin)-1)
 	dhdqbinplt = (dhdqbin[1:(end-1)] .+ dhdqbin[2:end])/2
@@ -172,9 +172,9 @@ function plotdqdp(
 			end
 		end
 	end
-	lvls = vcat(0:20:100,150:50:500)
-	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,binHDO',extend="both",levels=lvls)
-	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,binO18',extend="both",levels=lvls)
+	lvls = vcat(0.1,0.5,1,2:2:10,15:5:40)
+	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1)*100)',extend="both",levels=lvls)
+	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1)*100)',extend="both",levels=lvls)
 
 	if cinfo
 		return c1,c2
@@ -189,7 +189,7 @@ function axesformat!(axes)
 
 	for ax in axes
 		ax.format(
-			xlim=(-0.2,1.2),ylim=(1000,500),ylabel="Pressure / hPa",
+			xlim=(-0.2,1.2),ylim=(1000,100),ylabel="Pressure / hPa",
 			xlabel=L"$\partial_pq_h/\partial_pq$ / VSMOW",
 			suptitle="7-Day Moving Average"
 		)
@@ -202,16 +202,16 @@ function axesformat!(axes)
 
 	axes[2].format(ultitle="(b) San Andres")
 	axes[4].format(ultitle="(c) Buenaventura")
-	axes[4].text(0.715,610,"Bahia Solano",fontsize=10)
+	axes[4].text(0.715,300,"Bahia Solano",fontsize=10)
 	axes[6].format(ultitle="(d) Quibdo")
 	axes[8].format(ultitle="(f) EEFMB")
-	axes[8].text(0.69,610,"ADMQ",fontsize=10)
-	axes[8].text(0.69,660,"CGFI",fontsize=10)
+	axes[8].text(0.69,300,"ADMQ",fontsize=10)
+	axes[8].text(0.69,390,"CGFI",fontsize=10)
 	axes[10].format(ultitle="(g) Cahuita")
-	axes[10].text(0.72,610,"Bataan",fontsize=10)
-	axes[10].text(0.72,660,"Limon",fontsize=10)
+	axes[10].text(0.72,300,"Bataan",fontsize=10)
+	axes[10].text(0.72,390,"Limon",fontsize=10)
 	axes[12].format(ultitle="(h) Liberia")
-	axes[12].text(0.72,610,"OSA",fontsize=10)
+	axes[12].text(0.72,300,"OSA",fontsize=10)
 
 	return
 
@@ -235,7 +235,7 @@ begin
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,length=0.75,locator=vcat(0:20:100,150:50:500),label="Number of Observations")
+	fig.colorbar(c1,length=0.75,locator=vcat(0.1,0.5,1,2:2:10,15:5:40),label="Number of Observations")
 	fig.savefig(projectdir("figures","fig5-dhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig5-dhdq.png"))
 end
@@ -249,6 +249,6 @@ end
 # ╟─95de152a-39ce-448a-a931-ba393f86b629
 # ╟─887b52b3-8ea4-444d-8a6d-96fb6acb37f3
 # ╟─f224f902-cd89-4f4a-aedb-60ebbc79f4f5
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
-# ╟─8c211620-d632-4f23-85f5-a702faf82270
+# ╠═8c211620-d632-4f23-85f5-a702faf82270
