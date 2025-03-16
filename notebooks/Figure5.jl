@@ -235,7 +235,7 @@ begin
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,length=0.75,locator=vcat(0.1,0.5,1,2:2:10,15:5:40),label="Number of Observations")
+	fig.colorbar(c1,length=0.75,locator=vcat(0.1,0.5,1,2:2:10,15:5:40),label="Percentage of Observations per Pressure Bin / %")
 	fig.savefig(projectdir("figures","fig5-dhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig5-dhdq.png"))
 end

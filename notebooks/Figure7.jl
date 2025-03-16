@@ -226,7 +226,7 @@ begin
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,loc="b",length=0.5,label="Percentage of Observations per Level / %")
+	fig.colorbar(c1,loc="b",length=0.5,label="Percentage of Observations per Pressure Bin / %")
 	fig.savefig(projectdir("figures","fig7-idealdhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig7-idealdhdq.png"))
 end
@@ -242,4 +242,4 @@ end
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
 # ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╠═1343fbae-0ebd-4237-8273-0ebab8325424
-# ╟─8c211620-d632-4f23-85f5-a702faf82270
+# ╠═8c211620-d632-4f23-85f5-a702faf82270
