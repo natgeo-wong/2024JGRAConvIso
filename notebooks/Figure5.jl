@@ -128,11 +128,11 @@ end
 # ╔═╡ 5bf90248-6ad6-4851-9c56-613d69f83d4b
 function plotdqdp(
 	axes,ii;
-	ID, days=0, box = false, bnum = 1, cinfo = false
+	ID, days=0, cinfo = false
 )
 
-	dhdqbin = 0 : 0.01 : 1.2
-	dodqbin = 0.9 : 0.001 : 1.02
+	dhdqbin = 0 : 0.02 : 1.2
+	dodqbin = 0.9 : 0.002 : 1.02
 	pbin    = vcat(0 : 50 : 550, 600 : 20 : 1000)
 	binHDO = zeros(length(dhdqbin)-1,length(pbin)-1)
 	binO18 = zeros(length(dodqbin)-1,length(pbin)-1)
@@ -140,35 +140,15 @@ function plotdqdp(
 	dodqbinplt = (dodqbin[1:(end-1)] .+ dodqbin[2:end])/2
 	pbinplt = (pbin[1:(end-1)] .+ pbin[2:end])/2
 
-	valid = readdlm(datadir("wrf","wrfvscalc.txt"))
-
 	for stn in ID
+		wvc = readdlm(datadir("wrf","wrfvscalc-smooth30.txt"))[stn,:]
+		qvl = readdlm(datadir("wrf","qbudgetdiff-smooth30.txt"))[stn,:]
 		stnstr = @sprintf("%02d",stn)
-		if box
-			for ibox = 1 : bnum
-				if valid[stn,ibox] < 0.15
-					boxstr = @sprintf("%d",ibox)
-					geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
-					p,dhdq,dodq = extract(geoname,days)
-					pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
-					it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))# .& (advc.>0) .& (divg.<0)
-					for jj = 1 : 49
-						binHDO[:,:] += fit(
-							Histogram,(dhdq[jj,it],p[jj,it]),
-							(dhdqbin,pbin)
-						).weights
-						binO18[:,:] += fit(
-							Histogram,(dodq[jj,it],p[jj,it]),
-							(dodqbin,pbin)
-						).weights
-					end
-				end
-			end
-		else
+		if (wvc[1] < 0.15) .& (qvl[1] < 0.05)
 			geoname = "OTREC_wrf_stn$stnstr"
 			p,dhdq,dodq = extract(geoname,days)
 			pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
-			it = (prcp.>2.5) .& (.!isnan.(pwgt)) .& (advc.>0) .& (divg.<0)
+			it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
 			for jj = 1 : 49
 				binHDO[:,:] += fit(
 					Histogram,(dhdq[jj,it],p[jj,it]),
@@ -180,9 +160,28 @@ function plotdqdp(
 				).weights
 			end
 		end
+		for ibox = 1 : 4
+			if (wvc[ibox+1] < 0.15) .& (qvl[ibox+1] < 0.05)
+				boxstr = @sprintf("%d",ibox)
+				geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
+				p,dhdq,dodq = extract(geoname,days)
+				pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
+				it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
+				for jj = 1 : 49
+					binHDO[:,:] += fit(
+						Histogram,(dhdq[jj,it],p[jj,it]),
+						(dhdqbin,pbin)
+					).weights
+					binO18[:,:] += fit(
+						Histogram,(dodq[jj,it],p[jj,it]),
+						(dodqbin,pbin)
+					).weights
+				end
+			end
+		end
 	end
-	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=0:10)
-	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=0:10)
+	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=0:5:50)
+	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=0:5:50)
 
 	if cinfo
 		return c1,c2
@@ -233,16 +232,16 @@ begin
 	)
 
 	c1,_ =
-	plotdqdp(axs,1,ID=1,box=true,bnum=4,days=7,cinfo=true)
-	plotdqdp(axs,2,ID=3:4,box=true,bnum=4,days=7)
-	plotdqdp(axs,3,ID=2,box=true,bnum=4,days=7)
-	plotdqdp(axs,4,ID=5:7,box=true,bnum=4,days=7)
-	plotdqdp(axs,5,ID=9:11,box=true,bnum=4,days=7)
-	plotdqdp(axs,6,ID=[8,12],box=true,bnum=4,days=7)
+	plotdqdp(axs,1,ID=1,days=7,cinfo=true)
+	plotdqdp(axs,2,ID=3:4,days=7)
+	plotdqdp(axs,3,ID=2,days=7)
+	plotdqdp(axs,4,ID=5:7,days=7)
+	plotdqdp(axs,5,ID=9:11,days=7)
+	plotdqdp(axs,6,ID=[8,12],days=7)
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,length=0.75,locator=[0,1,2,5,10,20,50],label="Probability / %")
+	fig.colorbar(c1,length=0.75,locator=0:10:50,label="Number of Observations")
 	fig.savefig(projectdir("figures","fig5-dhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig5-dhdq.png"))
 end
