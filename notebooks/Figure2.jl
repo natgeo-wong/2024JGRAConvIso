@@ -129,8 +129,8 @@ begin
 	)
 	
 	axs[1].pcolormesh(
-		lsd_d02.lon[1:10:end].+360,lsd_d02.lat[1:10:end],
-		lsd_d02.z[1:10:end,1:10:end]'/1000,
+		lsd_d02.lon[1:5:end].+360,lsd_d02.lat[1:5:end],
+		lsd_d02.z[1:5:end,1:5:end]'/1000,
 		levels=lvls,cmap="bukavu",extend="both"
 	)
 
@@ -138,30 +138,25 @@ begin
 	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,270,2,"1",c="k",size=8)
 	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,272,1,"1",c="k",size=8)
 	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,270,6.5,"1",c="k",size=8)
-	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,272,11,"11",c="k",size=8)
-	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,14,"13",c="k",size=8)
-	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,6.5,"13",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,272,13,"25",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,14,"25",c="k",size=8)
+	axs[1].text(horizontalalignment="center",verticalalignment="center",bbox=textdict,282,6.5,"25",c="k",size=8)
 	
-	for ipnt = 1 : 13
+	for ipnt = 1 : 25
 		geosample = GeoRegion("OTREC_wrf_ITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
 		axs[1].plot(ilon.+360,ilat,c="yellow")
-	end
-	for ipnt = 1 : 13
 		geosample = GeoRegion("OTREC_wrf_PAC2ATL$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
 		axs[1].plot(ilon.+360,ilat,c="kiwi green")
-	end
-	for ipnt = 1 : 11
 		geosample = GeoRegion("OTREC_wrf_CrossITCZ$(@sprintf("%02d",ipnt))",path=srcdir())
 		ilon,ilat = coordinates(geosample)
 		axs[1].plot(ilon.+360,ilat,c="blue3")
 	end
 	
-	axs[1].plot(x,y,lw=0.5,c="k")
 	axs[1].plot([275,275,278,278,275],[8,10.5,10.5,8,8],lw=1,c="k",linestyle="--")
-	axs[1].scatter(infody[:,2],infody[:,3],zorder=4,c="pink")
-	axs[1].scatter(infocr[:,2],infocr[:,3],zorder=4,c="red")
+	axs[1].scatter(infody[:,2],infody[:,3],zorder=4,c="pink",s=15)
+	axs[1].scatter(infocr[:,2],infocr[:,3],zorder=4,c="red",s=15)
 	axs[1].plot([275,288],[10.5,15],lw=1,c="k",linestyle=":")
 	axs[1].plot([278,295],[8,9.03],lw=1,c="k",linestyle=":")
 	axs[1].plot(lon_d02.+360,lat_d02,lw=5,c="k")
@@ -184,11 +179,12 @@ begin
 		lsd_sml.lon,lsd_sml.lat,lsd_sml.z'/1000,
 		levels=lvls,cmap="bukavu",extend="both"
 	)
-	ix.plot(x,y,lw=0.5,c="k")
-	ix.scatter(infocr[:,2],infocr[:,3],s=10,zorder=4,c="r")
-	ix.plot(slon.+360,slat,lw=2,c="orange")
-	ix.plot(blon1.+360,blat1,lw=2,c="orange",linestyle=":")
-	ix.plot(blon4.+360,blat4,lw=2,c="orange",linestyle=":")
+	ix.scatter(infocr[:,2],infocr[:,3],s=15,zorder=4,c="r")
+	ix.plot(slon.+360,slat,c="orange")
+	ix.plot(blon1.+360,blat1,c="orange",linestyle=":")
+	ix.plot(blon2.+360,blat2,c="orange",linestyle=":")
+	ix.plot(blon3.+360,blat3,c="orange",linestyle=":")
+	ix.plot(blon4.+360,blat4,c="orange",linestyle=":")
 
 	ix.text(275.2,10.15,"EEFMB",c="k",size=7,bbox=textdict)
 	ix.text(275.4,9.65,"CGFI",c="k",size=7,bbox=textdict)
@@ -217,7 +213,6 @@ begin
 		levels=lvls,cmap="bukavu",extend="both"
 	)
 
-	ix.plot(x,y,lw=0.5,c="k")
 	ix.plot(lon_d02.+360,lat_d02,lw=1.5,c="k")
 	ix.plot(lon_d01.+360,lat_d01,lw=1.5,c="k",linestyle="--")
 	ix.text(281,-5,"d02",c="k",size=8)
@@ -255,4 +250,4 @@ end
 # ╠═dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
 # ╠═c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
-# ╠═d7755534-3565-4011-b6e3-e131991008db
+# ╟─d7755534-3565-4011-b6e3-e131991008db

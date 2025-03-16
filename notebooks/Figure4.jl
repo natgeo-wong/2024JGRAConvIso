@@ -122,19 +122,6 @@ function extract(geoname,iso,days)
 	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
-	
-	# dsp = NCDataset(datadir(
-	# 	"wrf3","processed",
-	# 	"$geoname-wcoeff-daily-20190801_20201231-smooth_$(dystr)days.nc"
-	# ))
-	# wc = dsp["wcoeff"][:,:]
-	# close(dsp)
-	# wcconv = sum(wc[:,[1,3,5,7,9]],dims=2)[:];
-	# wctpbt = sum(wc[:,[2,4,6,8,10]],dims=2)[:];
-	# wcabs  = sqrt.(wcconv.^2 .+ wctpbt.^2)[:];
-	# wctpbt = wctpbt ./ wcabs
-	# ii = wcconv .< 0
-
 	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
 end
@@ -143,45 +130,46 @@ end
 function binning!(
 	binstn,numstn,prcstn,
 	rpnt, ppnt;
-	ID, days=0, iso = "HDO", box = false, bnum = 1
+	ID, days=0, iso = "HDO"
 )
 
 	iso = "$(iso)_"
 	stnstr = @sprintf("%02d",ID)
 
-	valid = readdlm(datadir("wrf","wrfvscalc.txt"))[ID,:]
+	wvc = readdlm(datadir("wrf","wrfvscalc-smooth30.txt"))[ID,:]
+	qvl = readdlm(datadir("wrf","qbudgetdiff-smooth30.txt"))[ID,:]
 
-	if box
-		for ibox = 1 : bnum
-			if valid[ibox] < 0.15
-				boxstr = @sprintf("%0d",ibox)
-				geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
-				pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
-				nt = length(prcp)
-			
-				for it = 1 : nt
-					if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])
-						rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
-						pind = argmin(abs.(pwgt[it].-ppnt))
-						numstn[rind,pind] += 1
-						binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
-						prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
-					end
-				end
-			end
-		end
-	else
+	if (wvc[1] < 0.15) .& (qvl[1] < 0.05)
 		geoname = "OTREC_wrf_stn$stnstr"
 		pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
 		nt = length(prcp)
 	
 		for it = 1 : nt
-			if (prcp[it]>2.5) && (advc[it]>0) && (divg[it]<0) && !isnan(pwgt[it])
+			if (prcp[it]+advc[it]-evap[it]>2.5) && !isnan(pwgt[it])
 				rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
 				pind = argmin(abs.(pwgt[it].-ppnt))
 				numstn[rind,pind] += 1
 				binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
 				prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
+			end
+		end
+	end
+
+	for ibox = 1 : 4
+		if (wvc[ibox+1] < 0.15) .& (qvl[ibox+1] < 0.05)
+			boxstr = @sprintf("%0d",ibox)
+			geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
+			pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
+			nt = length(prcp)
+		
+			for it = 1 : nt
+				if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])
+					rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
+					pind = argmin(abs.(pwgt[it].-ppnt))
+					numstn[rind,pind] += 0.25
+					binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
+					prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
+				end
 			end
 		end
 	end
@@ -193,7 +181,7 @@ end
 # ╔═╡ 9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 function threshold!(
 	bin,num,prc;
-	numthresh = 10
+	numthresh = 5
 )
 
 	bin[num.<numthresh] .= 0
@@ -300,7 +288,7 @@ end
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
 	rbin = 0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
-	pbin = 0 : 0.050 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
+	pbin = 0 : 0.05 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
 	bbin = zeros(nr,np); bnum = zeros(nr,np); bprc = zeros(nr,np)
@@ -328,22 +316,22 @@ begin
 	ibin .= 0; iprc .= 0; inum .= 0
 	
 	for istn = 1
-		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 	for istn = [3,4]
-		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 	for istn = 2
-		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 	for istn = 5 : 7
-		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 	for istn = 9 : 11
-		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 	for istn = [8,12]
-		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",box=true,bnum=4,days=7)
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
 	end
 
 	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
@@ -383,9 +371,9 @@ end
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
-# ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
+# ╠═6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 # ╟─b6500812-fd5e-4842-8855-655822d170f4
