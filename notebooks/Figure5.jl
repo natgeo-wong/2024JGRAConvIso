@@ -148,17 +148,13 @@ function plotdqdp(
 			geoname = "OTREC_wrf_stn$stnstr"
 			p,dhdq,dodq = extract(geoname,days)
 			pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
-			it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
-			for jj = 1 : 49
-				binHDO[:,:] += fit(
-					Histogram,(dhdq[jj,it],p[jj,it]),
-					(dhdqbin,pbin)
-				).weights
-				binO18[:,:] += fit(
-					Histogram,(dodq[jj,it],p[jj,it]),
-					(dodqbin,pbin)
-				).weights
-			end
+			it = ((prcp.+advc.-evap).>2.5) .& (pwgt.<1) .& (pwgt.>0)
+			binHDO[:,:] += fit(
+				Histogram,(dhdq[:,it][:],p[:,it][:]),(dhdqbin,pbin)
+			).weights
+			binO18[:,:] += fit(
+				Histogram,(dodq[:,it][:],p[:,it][:]),(dodqbin,pbin)
+			).weights
 		end
 		for ibox = 1 : 4
 			if (wvc[ibox+1] < 0.15) .& (qvl[ibox+1] < 0.05)
@@ -166,22 +162,19 @@ function plotdqdp(
 				geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
 				p,dhdq,dodq = extract(geoname,days)
 				pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
-				it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
-				for jj = 1 : 49
-					binHDO[:,:] += fit(
-						Histogram,(dhdq[jj,it],p[jj,it]),
-						(dhdqbin,pbin)
-					).weights
-					binO18[:,:] += fit(
-						Histogram,(dodq[jj,it],p[jj,it]),
-						(dodqbin,pbin)
-					).weights
-				end
+				it = ((prcp.+advc.-evap).>2.5) .& (pwgt.<1) .& (pwgt.>0)
+				binHDO[:,:] += fit(
+					Histogram,(dhdq[:,it][:],p[:,it][:]),(dhdqbin,pbin)
+				).weights * 0.25
+				binO18[:,:] += fit(
+					Histogram,(dodq[:,it][:],p[:,it][:]),(dodqbin,pbin)
+				).weights * 0.25
 			end
 		end
 	end
-	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1))'*100,extend="both",levels=0:5:50)
-	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1))'*100,extend="both",levels=0:5:50)
+	lvls = vcat(0:20:100,150:50:500)
+	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,binHDO',extend="both",levels=lvls)
+	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,binO18',extend="both",levels=lvls)
 
 	if cinfo
 		return c1,c2
@@ -225,6 +218,7 @@ function axesformat!(axes)
 end
 
 # ╔═╡ 8c211620-d632-4f23-85f5-a702faf82270
+# ╠═╡ show_logs = false
 begin
 	pplt.close(); fig,axs = pplt.subplots(
 		[[2,1,4,3,6,5],[8,7,10,9,12,11]],aspect=0.5,axwidth=0.75,
@@ -241,7 +235,7 @@ begin
 	
 	axesformat!(axs)
 
-	fig.colorbar(c1,length=0.75,locator=0:10:50,label="Number of Observations")
+	fig.colorbar(c1,length=0.75,locator=vcat(0:20:100,150:50:500),label="Number of Observations")
 	fig.savefig(projectdir("figures","fig5-dhdq.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig5-dhdq.png"))
 end
@@ -255,6 +249,6 @@ end
 # ╟─95de152a-39ce-448a-a931-ba393f86b629
 # ╟─887b52b3-8ea4-444d-8a6d-96fb6acb37f3
 # ╟─f224f902-cd89-4f4a-aedb-60ebbc79f4f5
-# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─8c211620-d632-4f23-85f5-a702faf82270
