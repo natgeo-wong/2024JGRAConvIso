@@ -1,45 +1,46 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ e32a00ee-5f32-47a1-a983-91fb77bc5d18
+# ╔═╡ 1d7446ba-f464-44df-89e2-ae2a5726e849
 begin
 	using Pkg; Pkg.activate()
 	using DrWatson
-	md"Using DrWatson to ensure reproducibility between different machines ..."
+	md"Using DrWatson in order to ensure reproducibility between different machines ..."
 end
 
-# ╔═╡ bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
+# ╔═╡ ab294fae-101f-4587-a2f4-7d72254dd421
 begin
 	@quickactivate "2024GLConvIso"
 	using DelimitedFiles
+	using GeoRegions
 	using NCDatasets
+	using PlutoUI
 	using Printf
 	using StatsBase
-	
+
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
 	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
-	
+
 	md"Loading modules for the ConvectionIsotopes project..."
 end
 
-# ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
+# ╔═╡ fa2f8740-f813-11ec-00e1-112e2dfacda7
 md"
-# 03b. Station W-Weighted Pressure, $\sigma$
+# 01d. Creating GeoRegions for Stations
+
+In this notebook, we define additional GeoRegions of interest for plotting and for analysis based on WRF modelling output and as necessary for figures.
 "
 
-# ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
-begin
-	infody = stninfody()[:,:]; nstn = size(infody,1)
-	md"Loading station location information ..."
-end
+# ╔═╡ ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
+TableOfContents()
 
-# ╔═╡ 87415583-395d-4a39-b3d3-3f6a2dc95112
+# ╔═╡ 582476a4-e280-458b-ac4c-7c681ff96a74
 function calculatebufferweights(shiftsteps)
 
     buffer = Int(ceil((shiftsteps-1)/2))
@@ -53,7 +54,7 @@ function calculatebufferweights(shiftsteps)
 
 end
 
-# ╔═╡ b754ea7c-f907-47ba-87d3-c0df3a92dc3d
+# ╔═╡ 6aff97ec-0bd3-4d84-9d5c-93393941ca4e
 function smooth(data::AbstractVector,days)
 
 	buffer,weights = calculatebufferweights(days)
@@ -75,7 +76,7 @@ function smooth(data::AbstractVector,days)
 
 end
 
-# ╔═╡ 7e114c52-4f6b-45e1-8081-abbc674d39c2
+# ╔═╡ 10d1c691-00a7-47de-a8ca-8debcd3346c1
 function extractbudget(geoname,days)
 
 	dystr  = "daily-20190801_20201231-smooth_$(@sprintf("%02d",days))days"
@@ -110,136 +111,93 @@ function extractbudget(geoname,days)
 	
 end
 
-# ╔═╡ 4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╔═╡ d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
 function extract(geoname,days)
 
 	dystr  = "daily-20190801_20201231-smooth_$(@sprintf("%02d",days))days"
 
-	ds = NCDataset(datadir("wrf","processed","$geoname-dhodq-$(dystr).nc"))
-	p = ds["P"][:,:] ./ 100
-	dhdq = ds["dHDOdH2O"][:,:]
-	dodq = ds["dO18dH2O"][:,:]
+	ds = NCDataset(datadir("wrf","processed","$geoname-cdhodq-$(dystr).nc"))
+	c0 = ds["cdO18dH2O"][1,:] .- 1
+	c1 = ds["cdO18dH2O"][2,:] * 1e6
 	close(ds)
 
-	return p,dhdq,dodq
+	return c0,c1
 	
 end
 
-# ╔═╡ 5bf90248-6ad6-4851-9c56-613d69f83d4b
-function plotdqdp(
+# ╔═╡ c793412d-71b6-4f2c-a9f4-15da6ec039e4
+function plotcdqdp(
 	axes,ii;
-	ID, days=0, prfx = "", cinfo = false
+	nID, days=0, prfx = "", cinfo = false
 )
 
-	dhdqbin = 0 : 0.01 : 1.2
-	dodqbin = 0.9 : 0.001 : 1.02
-	pbin    = vcat(0 : 50 : 550, 600 : 50 : 1000)
-	binHDO = zeros(length(dhdqbin)-1,length(pbin)-1)
-	binO18 = zeros(length(dodqbin)-1,length(pbin)-1)
-	dhdqbinplt = (dhdqbin[1:(end-1)] .+ dhdqbin[2:end])/2
-	dodqbinplt = (dodqbin[1:(end-1)] .+ dodqbin[2:end])/2
-	pbinplt = (pbin[1:(end-1)] .+ pbin[2:end])/2
+	c0edge = -0.025 : 0.001 : 0.025
+	c1edge = 0 : 0.02 : 1
+	binc0 = zeros(length(c0edge)-1,nID)
+	binc1 = zeros(length(c1edge)-1,nID)
+	c0plt = (c0edge[1:(end-1)] .+ c0edge[2:end])/2
+	c1plt = (c1edge[1:(end-1)] .+ c1edge[2:end])/2
+	μc0 = zeros(nID); σc0 = zeros(nID)
+	μc1 = zeros(nID); σc1 = zeros(nID)
+	IDplt = 1 : nID
 
-	for stn in ID
+	for stn in 1 : nID
 		stnstr = @sprintf("%02d",stn)
 		geoname = "OTREC_wrf_$(prfx)$stnstr"
-		p,dhdq,dodq = extract(geoname,days)
+		c0,c1 = extract(geoname,days)
 		pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
 		it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
-			binHDO[:,:] += fit(
-				Histogram,(dhdq[:,it][:],p[:,it][:]),
-				(dhdqbin,pbin)
-			).weights
-			binO18[:,:] += fit(
-				Histogram,(dodq[:,it][:],p[:,it][:]),
-				(dodqbin,pbin)
-			).weights
+		binc0[:,stn] += fit(Histogram,c0[it],c0edge).weights
+		binc1[:,stn] += fit(Histogram,c1[it],c1edge).weights
+		μc0[stn] = mean(c0[it]); σc0[stn] = std(c0[it])
+		μc1[stn] = mean(c1[it]); σc1[stn] = std(c1[it])
 	end
 
-	lvls = vcat(0.1,0.5,1,2:2:10,15,20)
-	c1 = axes[2*ii].pcolormesh(dhdqbinplt,pbinplt,(binHDO./sum(binHDO,dims=1).*100)',extend="both",levels=lvls)
-	c2 = axes[2*ii-1].pcolormesh(dodqbinplt,pbinplt,(binO18./sum(binO18,dims=1).*100)',extend="both",levels=lvls)
+	lvls = 2:2:20
+	c1 = 
+	axes[ii+0].pcolormesh(IDplt,c0plt,binc0,extend="both",levels=lvls)
+	axes[ii+3].pcolormesh(IDplt,c1plt,binc1,extend="both",levels=lvls)
+	
+	axes[ii+0].plot(IDplt,μc0)
+	axes[ii+3].plot(IDplt,μc1)
 
 	if cinfo
-		return c1,c2
+		return c1
 	else
 		return
 	end
 
 end
 
-# ╔═╡ 1343fbae-0ebd-4237-8273-0ebab8325424
-function axesformat!(axes)
-
-	for ax in axes
-		ax.format(
-			xlim=(-0.2,1.2),ylim=(1000,100),ylabel="Pressure / hPa",
-			ylocator=0:250:1000,
-			xlabel=L"$\partial_pq_h/\partial_pq$ / VSMOW",
-			suptitle="7-Day Moving Average",
-			rightlabels=["ITCZ","CrossITCZ","PAC2ATL"]
-		)
-	end
-
-	for ii = 1 : 15
-		axes[2*ii].format(xlim=(0.5,1.1),lltitle="HDO")
-		axes[2*ii-1].format(xlim=(0.92,1.01),lltitle="O18")
-	end
-
-	for ii = 1 : 5
-		axes[2*ii].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
-		axes[2*ii+10].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
-		axes[2*ii+20].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
-	end
-
-	return
-
-end
-
-# ╔═╡ 8c211620-d632-4f23-85f5-a702faf82270
+# ╔═╡ 30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
 begin
-	pplt.close(); fig,axs = pplt.subplots(
-		[[2,1,4,3,6,5,8,7,10,9],
-		[12,11,14,13,16,15,18,17,20,19],
-		[22,21,24,23,26,25,28,27,30,29]],aspect=0.5,axwidth=0.5,
-		wspace=[0,1.5,0,1.5,0,1.5,0,1.5,0]
-	)
+	pplt.close(); fig,axs = pplt.subplots(nrows=2,ncols=3,aspect=1.5,axwidth=1.5,sharey=0)
 
-	c1,_ = 
-	plotdqdp(axs,1,ID=1:5,  prfx="ITCZ",days=7,cinfo=true)
-	plotdqdp(axs,2,ID=6:10, prfx="ITCZ",days=7)
-	plotdqdp(axs,3,ID=11:15,prfx="ITCZ",days=7)
-	plotdqdp(axs,4,ID=16:20,prfx="ITCZ",days=7)
-	plotdqdp(axs,5,ID=20:25,prfx="ITCZ",days=7)
+	c1 =
+	plotcdqdp(axs,1,nID=25,days=7,cinfo=true,prfx="ITCZ")
+	plotcdqdp(axs,2,nID=25,days=7,cinfo=true,prfx="CrossITCZ")
+	plotcdqdp(axs,3,nID=25,days=7,cinfo=true,prfx="PAC2ATL")
 
-	plotdqdp(axs,6,ID=1:5,  prfx="CrossITCZ",days=7)
-	plotdqdp(axs,7,ID=6:10, prfx="CrossITCZ",days=7)
-	plotdqdp(axs,8,ID=11:15,prfx="CrossITCZ",days=7)
-	plotdqdp(axs,9,ID=16:20,prfx="CrossITCZ",days=7)
-	plotdqdp(axs,10,ID=20:25,prfx="CrossITCZ",days=7)
+	axs[1].format(ylabel=L"c_0 - 1",title="ITCZ",xlabel="Region Number")
+	axs[2].format(yticklabels="none",title="CrossITCZ",xlabel="Region Number")
+	axs[3].format(yticklabels="none",title="PAC2ATL",xlabel="Region Number")
+	axs[4].format(ylabel=L"$c_1$ / 10$^{-6}$ Pa$^{-1}$")
+	axs[5].format(yticklabels="none")
+	axs[6].format(yticklabels="none")
 
-	plotdqdp(axs,11,ID=1:5,  prfx="PAC2ATL",days=7)
-	plotdqdp(axs,12,ID=6:10, prfx="PAC2ATL",days=7)
-	plotdqdp(axs,13,ID=11:15,prfx="PAC2ATL",days=7)
-	plotdqdp(axs,14,ID=16:20,prfx="PAC2ATL",days=7)
-	plotdqdp(axs,15,ID=20:25,prfx="PAC2ATL",days=7)
-	
-	axesformat!(axs)
-
-	fig.colorbar(c1,loc="b",length=0.5,label="Percentage of Observations per Pressure Bin / %")
-	fig.savefig(projectdir("figures","fig7-idealdhdq.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig7-idealdhdq.png"))
+	fig.colorbar(c1,label="Number of Observations",length=0.75)
+	fig.savefig(projectdir("figures","fig7-bincdhdq.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig7-bincdhdq.png"))
 end
 
 # ╔═╡ Cell order:
-# ╟─2e7c33da-f8b5-11ec-08f2-2581af96575f
-# ╟─e32a00ee-5f32-47a1-a983-91fb77bc5d18
-# ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
-# ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
-# ╟─87415583-395d-4a39-b3d3-3f6a2dc95112
-# ╟─b754ea7c-f907-47ba-87d3-c0df3a92dc3d
-# ╟─7e114c52-4f6b-45e1-8081-abbc674d39c2
-# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
-# ╠═1343fbae-0ebd-4237-8273-0ebab8325424
-# ╠═8c211620-d632-4f23-85f5-a702faf82270
+# ╟─fa2f8740-f813-11ec-00e1-112e2dfacda7
+# ╟─1d7446ba-f464-44df-89e2-ae2a5726e849
+# ╟─ab294fae-101f-4587-a2f4-7d72254dd421
+# ╟─ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
+# ╟─582476a4-e280-458b-ac4c-7c681ff96a74
+# ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
+# ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
+# ╟─d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
+# ╟─c793412d-71b6-4f2c-a9f4-15da6ec039e4
+# ╟─30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
