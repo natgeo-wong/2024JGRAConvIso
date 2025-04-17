@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -114,12 +114,12 @@ function extract(geoname,iso,days)
 
 	dsp = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-p_wwgt-daily-20190801_20201231-smooth_$(dystr)days.nc"
+		"$geoname-p_wwgt2-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
 	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
-	pwgt = dsp["σ_wwgt"][:]
-	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
+	# pwgt = dsp["σ_wwgt"][:]
+	# pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
 	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
@@ -236,7 +236,7 @@ function axesformat!(axesnum)
 
 	for ax in axesnum
 		ax.format(
-			ylim=(1,0),xlim=(0,100),xlocator=0:100:200,ylocator=0:0.25:1,
+			ylim=(1000,0),xlim=(0,100),xlocator=0:100:200,ylocator=0:250:1000,
 			xlabel=L"$P - E + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$",
 			leftlabels=["ITCZ","CrossITCZ","PAC2ATL"]
 		)
@@ -249,7 +249,7 @@ function axesformat!(axesnum)
 	end
 	
 	naxs = length(axesnum)
-	axesnum[29].format(ylabel=L"$\sigma_\omega$")
+	axesnum[29].format(ylabel=L"$p_\omega$")
 
 	return
 
@@ -258,7 +258,7 @@ end
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
 	rbin =  0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
-	pbin = -1 : 0.05 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
+	pbin = 0 : 50 : 1000; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
 	bbin = zeros(nr,np); bnum = zeros(nr,np); bprc = zeros(nr,np)
@@ -373,8 +373,8 @@ begin
 	f2.colorbar(c2_1,row=[1],locator=-20:4:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
 	f2.colorbar(c2_2,row=[2],locator=0:10:50,label="Number of Observations")
 	
-	f2.savefig(projectdir("figures","fig6-idealadv.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig6-idealadv.png"))
+	f2.savefig(projectdir("figures","fig6-pqomega.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig6-pqomega.png"))
 end
 
 # ╔═╡ Cell order:
@@ -385,8 +385,8 @@ end
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
-# ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
