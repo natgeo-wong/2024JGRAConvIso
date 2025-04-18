@@ -125,21 +125,16 @@ function extract(geoname,days)
 	
 end
 
-# ╔═╡ c793412d-71b6-4f2c-a9f4-15da6ec039e4
-function plotcdqdp(
+# ╔═╡ 405dd308-1b04-4487-b1b2-86ff17459167
+function plotdeplete(
 	axes,ii;
 	nID, days=0, prfx = "", cinfo = false
 )
 
-	c0edge = -0.025 : 0.001 : 0.025
-	c1edge = 0 : 0.02 : 1
-	binc0 = zeros(length(c0edge)-1,nID)
-	binc1 = zeros(length(c1edge)-1,nID)
-	c0plt = (c0edge[1:(end-1)] .+ c0edge[2:end])/2
-	c1plt = (c1edge[1:(end-1)] .+ c1edge[2:end])/2
-	μc0 = zeros(nID); σc0 = zeros(nID)
-	μc1 = zeros(nID); σc1 = zeros(nID)
-	IDplt = 1 : nID
+	IDplt  = 1 : nID
+	preplt = 400:50:1000; prevec = (preplt[1:(end-1)] .+ preplt[2:end]) ./ 2
+	npre = length(prevec)
+	δmat = zeros(nID,npre)
 
 	for stn in 1 : nID
 		stnstr = @sprintf("%02d",stn)
@@ -147,47 +142,38 @@ function plotcdqdp(
 		c0,c1 = extract(geoname,days)
 		pwgt,prcp,evap,advc,divg = extractbudget(geoname,days)
 		it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
-		binc0[:,stn] += fit(Histogram,c0[it],c0edge).weights
-		binc1[:,stn] += fit(Histogram,c1[it],c1edge).weights
-		μc0[stn] = mean(c0[it]); σc0[stn] = std(c0[it])
-		μc1[stn] = mean(c1[it]); σc1[stn] = std(c1[it])
+		μc0 = mean(c0[it])
+		μc1 = mean(c1[it])
+		δmat[stn,:] = μc1 * 1e-6 * (prevec*1e2 .- 1e5) .+ μc0
 	end
 
-	lvls = 2:2:20
-	c1 = 
-	axes[ii+0].pcolormesh(IDplt,c0plt,binc0,extend="both",levels=lvls)
-	axes[ii+3].pcolormesh(IDplt,c1plt,binc1,extend="both",levels=lvls)
-	
-	axes[ii+0].plot(IDplt,μc0)
-	axes[ii+3].plot(IDplt,μc1)
+	lvls = -25:2.5:0
+	c = axes[ii].pcolormesh(IDplt,prevec,δmat'.*1000,extend="both",levels=lvls,cmap="viridis")
 
 	if cinfo
-		return c1
+		return c
 	else
 		return
 	end
 
 end
 
-# ╔═╡ 30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
+# ╔═╡ deaed5af-5700-418f-a6f1-05e0c0637d75
 begin
-	pplt.close(); fig,axs = pplt.subplots(nrows=2,ncols=3,aspect=1.5,axwidth=1.5,sharey=0)
+	pplt.close(); fig,axs = pplt.subplots(ncols=3,aspect=1.5,axwidth=1.5)
 
-	c1 =
-	plotcdqdp(axs,1,nID=25,days=7,cinfo=true,prfx="ITCZ")
-	plotcdqdp(axs,2,nID=25,days=7,cinfo=true,prfx="CrossITCZ")
-	plotcdqdp(axs,3,nID=25,days=7,cinfo=true,prfx="PAC2ATL")
+	cbar =
+	plotdeplete(axs,1,nID=25,days=7,cinfo=true,prfx="ITCZ")
+	plotdeplete(axs,2,nID=25,days=7,cinfo=true,prfx="CrossITCZ")
+	plotdeplete(axs,3,nID=25,days=7,cinfo=true,prfx="PAC2ATL")
 
-	axs[1].format(ylabel=L"c_0 - 1",title="ITCZ",xlabel="Region Number")
-	axs[2].format(yticklabels="none",title="CrossITCZ",xlabel="Region Number")
-	axs[3].format(yticklabels="none",title="PAC2ATL",xlabel="Region Number")
-	axs[4].format(ylabel=L"$c_1$ / 10$^{-6}$ Pa$^{-1}$")
-	axs[5].format(yticklabels="none")
-	axs[6].format(yticklabels="none",suptitle=L"Coefficients for Linear Fit on 7-day $\delta^{18}$O")
+	axs[1].format(ylim=(1000,400),title="ITCZ",xlabel="Region Number",ylabel=L"$p_{q\omega}$",suptitle=L"Replicating 7-day $\delta^{18}$O using Coefficients from Linear Fit")
+	axs[2].format(ylim=(1000,400),title="CrossITCZ",xlabel="Region Number")
+	axs[3].format(ylim=(1000,400),title="PAC2ATL",xlabel="Region Number")
 
-	fig.colorbar(c1,label="Number of Observations",length=0.75)
-	fig.savefig(projectdir("figures","fig7-bincdhdq.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig7-bincdhdq.png"))
+	fig.colorbar(cbar,label=L"$\delta^{18}$O",locator=-25:5:0)
+	fig.savefig(projectdir("figures","fig8-idealizedreplication.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig8-idealizedreplication.png"))
 end
 
 # ╔═╡ Cell order:
@@ -199,5 +185,5 @@ end
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
 # ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
-# ╠═c793412d-71b6-4f2c-a9f4-15da6ec039e4
-# ╟─30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
+# ╠═405dd308-1b04-4487-b1b2-86ff17459167
+# ╠═deaed5af-5700-418f-a6f1-05e0c0637d75
