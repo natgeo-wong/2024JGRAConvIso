@@ -132,7 +132,7 @@ function plotdeplete(
 )
 
 	IDplt  = 1 : nID
-	preplt = 400:50:1000; prevec = (preplt[1:(end-1)] .+ preplt[2:end]) ./ 2
+	preplt = 300:50:900; prevec = (preplt[1:(end-1)] .+ preplt[2:end]) ./ 2
 	npre = length(prevec)
 	δmat = zeros(nID,npre)
 
@@ -144,11 +144,11 @@ function plotdeplete(
 		it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
 		μc0 = mean(c0[it])
 		μc1 = mean(c1[it])
-		δmat[stn,:] = μc1 * 1e-6 * (prevec*1e2 .- 850e2) .+ μc0
-		δmat[stn,prevec.>=850] .= μc0
+		δmat[stn,:] = μc1 * 1e-6 * (prevec*1e2 .- 800e2) .+ μc0
+		δmat[stn,prevec.>=800] .= μc0
 	end
 
-	lvls = -25:-7
+	lvls = -25:-10
 	c = axes[ii].pcolormesh(IDplt,prevec,δmat'.*1000,extend="both",levels=lvls,cmap="viridis")
 
 	if cinfo
@@ -161,16 +161,16 @@ end
 
 # ╔═╡ deaed5af-5700-418f-a6f1-05e0c0637d75
 begin
-	pplt.close(); fig,axs = pplt.subplots(ncols=3,aspect=1.5,axwidth=1.5)
+	pplt.close(); fig,axs = pplt.subplots(ncols=3,aspect=2,axwidth=1.5)
 
 	cbar =
 	plotdeplete(axs,1,nID=25,days=7,cinfo=true,prfx="ITCZ")
 	plotdeplete(axs,2,nID=25,days=7,cinfo=true,prfx="CrossITCZ")
 	plotdeplete(axs,3,nID=25,days=7,cinfo=true,prfx="PAC2ATL")
 
-	axs[1].format(ylim=(1000,400),title="ITCZ",xlabel="Region Number",ylabel=L"$p_{q\omega}$",suptitle=L"Replicating 7-day $\delta^{18}$O using Coefficients from Linear Fit")
-	axs[2].format(ylim=(1000,400),title="CrossITCZ",xlabel="Region Number")
-	axs[3].format(ylim=(1000,400),title="PAC2ATL",xlabel="Region Number")
+	axs[1].format(ylim=(900,350),title="ITCZ",xlabel="Region Number",ylabel=L"$p'_{q\omega}$",suptitle=L"Replicating 7-day $\delta^{18}$O using Coefficients from Linear Fit")
+	axs[2].format(ylim=(900,350),title="CrossITCZ",xlabel="Region Number")
+	axs[3].format(ylim=(900,350),title="PAC2ATL",xlabel="Region Number")
 
 	fig.colorbar(cbar,label=L"$\delta^{18}$O",locator=-25:5:0)
 	fig.savefig(projectdir("figures","fig8-idealizedreplication.png"),transparent=false,dpi=400)
@@ -186,5 +186,5 @@ end
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
 # ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
-# ╟─405dd308-1b04-4487-b1b2-86ff17459167
+# ╠═405dd308-1b04-4487-b1b2-86ff17459167
 # ╠═deaed5af-5700-418f-a6f1-05e0c0637d75
