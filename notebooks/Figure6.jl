@@ -114,7 +114,7 @@ function extract(geoname,iso,days)
 
 	dsp = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-p_wwgt2-daily-20190801_20201231-smooth_$(dystr)days.nc"
+		"$geoname-p_wwgt3-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
 	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
@@ -390,4 +390,4 @@ end
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╠═c57ae725-3056-481c-a004-a916192744be
+# ╟─c57ae725-3056-481c-a004-a916192744be

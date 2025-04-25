@@ -131,7 +131,7 @@ function plotcdqdp(
 	nID, days=0, prfx = "", cinfo = false
 )
 
-	c0edge = -0.025 : 0.001 : 0.025
+	c0edge = -0.021 : 0.0005 : 0.001
 	c1edge = 0 : 0.02 : 1
 	binc0 = zeros(length(c0edge)-1,nID)
 	binc1 = zeros(length(c1edge)-1,nID)
@@ -153,7 +153,7 @@ function plotcdqdp(
 		μc1[stn] = mean(c1[it]); σc1[stn] = std(c1[it])
 	end
 
-	lvls = 2:2:20
+	lvls = 1:20
 	c1 = 
 	axes[ii+0].pcolormesh(IDplt,c0plt,binc0,extend="both",levels=lvls)
 	axes[ii+3].pcolormesh(IDplt,c1plt,binc1,extend="both",levels=lvls)
@@ -198,6 +198,6 @@ end
 # ╟─582476a4-e280-458b-ac4c-7c681ff96a74
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
-# ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
+# ╟─d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
 # ╠═c793412d-71b6-4f2c-a9f4-15da6ec039e4
-# ╟─30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
+# ╠═30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4

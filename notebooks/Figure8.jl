@@ -144,10 +144,11 @@ function plotdeplete(
 		it = ((prcp.+advc.-evap).>2.5) .& (.!isnan.(pwgt))
 		μc0 = mean(c0[it])
 		μc1 = mean(c1[it])
-		δmat[stn,:] = μc1 * 1e-6 * (prevec*1e2 .- 1e5) .+ μc0
+		δmat[stn,:] = μc1 * 1e-6 * (prevec*1e2 .- 850e2) .+ μc0
+		δmat[stn,prevec.>=850] .= μc0
 	end
 
-	lvls = -25:2.5:0
+	lvls = -25:-7
 	c = axes[ii].pcolormesh(IDplt,prevec,δmat'.*1000,extend="both",levels=lvls,cmap="viridis")
 
 	if cinfo
@@ -185,5 +186,5 @@ end
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
 # ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
-# ╠═405dd308-1b04-4487-b1b2-86ff17459167
+# ╟─405dd308-1b04-4487-b1b2-86ff17459167
 # ╠═deaed5af-5700-418f-a6f1-05e0c0637d75
