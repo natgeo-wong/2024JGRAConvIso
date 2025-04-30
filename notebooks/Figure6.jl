@@ -117,12 +117,10 @@ function extract(geoname,iso,days)
 		"$geoname-p_wwgt3-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
-	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
-	# pwgt = dsp["σ_wwgt"][:]
-	# pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
+	pbl = dsp["P"][end,:] / 100 * 0.8; pbl[pbl.>800] .= 800
 	close(dsp)
 
-	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
+	return pbl .+ pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
 end
 
@@ -249,7 +247,9 @@ function axesformat!(axesnum)
 	end
 	
 	naxs = length(axesnum)
-	axesnum[29].format(ylabel=L"$p_{q\omega}$")
+	# axesnum[2].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
+	axesnum[12].format(ylabel=L"$p_{bl} + p'_{q\omega,bl}$ / hPa")
+	# axesnum[22].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
 
 	return
 
@@ -351,15 +351,15 @@ begin
 	)
 
 	c2_1,c2_2 = 
-	plotbin!(a2,1,rbin,pbin,abin,aprc,anum,-20:-8,returncinfo=true)
-	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-20:-8)
-	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-20:-8)
-	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-20:-8)
-	plotbin!(a2,5,rbin,pbin,ebin,eprc,enum,-20:-8)
-	plotbin!(a2,6,rbin,pbin,fbin,fprc,fnum,-20:-8)
-	plotbin!(a2,7,rbin,pbin,gbin,gprc,gnum,-20:-8)
-	plotbin!(a2,8,rbin,pbin,hbin,hprc,hnum,-20:-8)
-	plotbin!(a2,9,rbin,pbin,ibin,iprc,inum,-20:-8)
+	plotbin!(a2,01,rbin,pbin,abin,aprc,anum,-20:-8,returncinfo=true)
+	plotbin!(a2,02,rbin,pbin,bbin,bprc,bnum,-20:-8)
+	plotbin!(a2,03,rbin,pbin,cbin,cprc,cnum,-20:-8)
+	plotbin!(a2,04,rbin,pbin,dbin,dprc,dnum,-20:-8)
+	plotbin!(a2,05,rbin,pbin,ebin,eprc,enum,-20:-8)
+	plotbin!(a2,06,rbin,pbin,fbin,fprc,fnum,-20:-8)
+	plotbin!(a2,07,rbin,pbin,gbin,gprc,gnum,-20:-8)
+	plotbin!(a2,08,rbin,pbin,hbin,hprc,hnum,-20:-8)
+	plotbin!(a2,09,rbin,pbin,ibin,iprc,inum,-20:-8)
 	plotbin!(a2,10,rbin,pbin,jbin,jprc,jnum,-20:-8)
 	plotbin!(a2,11,rbin,pbin,kbin,kprc,knum,-20:-8)
 	plotbin!(a2,12,rbin,pbin,lbin,lprc,lnum,-20:-8)
@@ -384,10 +384,10 @@ end
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
-# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╠═4319fd0e-fd9f-424e-9286-3b3b5a844b73
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╟─c57ae725-3056-481c-a004-a916192744be
+# ╠═c57ae725-3056-481c-a004-a916192744be
