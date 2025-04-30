@@ -248,7 +248,7 @@ function axesformat!(axesnum)
 	
 	naxs = length(axesnum)
 	# axesnum[2].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
-	axesnum[12].format(ylabel=L"$p_{bl} + p'_{q\omega,bl}$ / hPa")
+	axesnum[12].format(ylabel=L"$p_{bl} + p_{q\omega,bl}$ / hPa")
 	# axesnum[22].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
 
 	return
@@ -388,6 +388,6 @@ end
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
-# ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
+# ╠═987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 # ╠═c57ae725-3056-481c-a004-a916192744be
