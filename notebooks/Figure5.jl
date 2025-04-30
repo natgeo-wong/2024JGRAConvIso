@@ -249,7 +249,7 @@ function axesformat!(axesnum)
 	end
 	
 	naxs = length(axesnum)
-	axesnum[29].format(ylabel=L"$p_\omega$")
+	axesnum[12].format(ylabel=L"$p_\omega$ / hPa")
 
 	return
 
@@ -390,4 +390,4 @@ end
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╟─c57ae725-3056-481c-a004-a916192744be
+# ╠═c57ae725-3056-481c-a004-a916192744be
