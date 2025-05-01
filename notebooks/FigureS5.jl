@@ -344,14 +344,14 @@ begin
 	)
 
 	c1_1,c1_2 = 
-	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-12.5:0.5:-7,returncinfo=true)
-	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-12.5:0.5:-7)
-	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-12.5:0.5:-7)
-	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-12.5:0.5:-7)
-	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-12.5:0.5:-7)
-	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-12.5:0.5:-7)
-	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-12.5:0.5:-7)
-	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-12.5:0.5:-7)
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-12:0.5:-7,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-12:0.5:-7)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-12:0.5:-7)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-12:0.5:-7)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-12:0.5:-7)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-12:0.5:-7)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-12:0.5:-7)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-12:0.5:-7)
 
 	axesformat!(a1)
 	a1[1].format(suptitle="7-Day WRF Moving Average")
