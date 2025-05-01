@@ -145,7 +145,7 @@ function binning!(
 		nt = length(prcp)
 	
 		for it = 1 : nt
-			if (prcp[it]+advc[it]-evap[it]>2.5) && !isnan(pwgt[it])
+			if ((prcp[it]+advc[it]-evap[it])>2.5) && !isnan(pwgt[it])
 				rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
 				pind = argmin(abs.(pwgt[it].-ppnt))
 				numstn[rind,pind] += 1
@@ -371,9 +371,9 @@ end
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
-# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╠═5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╟─b6500812-fd5e-4842-8855-655822d170f4
+# ╠═b6500812-fd5e-4842-8855-655822d170f4
