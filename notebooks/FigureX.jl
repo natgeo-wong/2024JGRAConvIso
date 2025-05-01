@@ -26,7 +26,7 @@ begin
 
 	include(srcdir("common.jl"))
 	
-	md"Loading modules for the 2024GLConvIso project..."
+	md"Loading modules for the ConvectionIsotopes project..."
 end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
@@ -118,8 +118,8 @@ function extract(geoname,iso,days)
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
 	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
-	pwgt = dsp["σ_wwgt"][:]
-	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
+	# pwgt = dsp["σ_wwgt"][:]
+	# pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
 	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
@@ -130,47 +130,23 @@ end
 function binning!(
 	binstn,numstn,prcstn,
 	rpnt, ppnt;
-	ID, days=0, iso = "HDO"
+	ID, days=0, iso = "HDO", prfx = ""
 )
 
 	iso = "$(iso)_"
 	stnstr = @sprintf("%02d",ID)
-
-	wvc = readdlm(datadir("wrf","wrfvscalc-smooth30.txt"))[ID,:]
-	qvl = readdlm(datadir("wrf","qbudgetdiff-smooth30.txt"))[ID,:]
-
-	if (wvc[1] < 0.15) .& (qvl[1] < 0.05)
-		geoname = "OTREC_wrf_stn$stnstr"
-		pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
-		nt = length(prcp)
 	
-		for it = 1 : nt
-			if ((prcp[it])>2.5) && !isnan(pwgt[it])
-				rind = argmin(abs.(prcp[it].-rpnt))
-				pind = argmin(abs.(pwgt[it].-ppnt))
-				numstn[rind,pind] += 1
-				binstn[rind,pind] += hvyp[it]
-				prcstn[rind,pind] += prcp[it]
-			end
-		end
-	end
+	geoname = "OTREC_wrf_$(prfx)$stnstr"
+	pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
+	nt = length(prcp)
 
-	for ibox = 1 : 4
-		if (wvc[ibox+1] < 0.15) .& (qvl[ibox+1] < 0.05)
-			boxstr = @sprintf("%0d",ibox)
-			geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
-			pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
-			nt = length(prcp)
-		
-			for it = 1 : nt
-				if ((prcp[it])>2.5) && !isnan(pwgt[it])
-					rind = argmin(abs.(prcp[it].-rpnt))
-					pind = argmin(abs.(pwgt[it].-ppnt))
-					numstn[rind,pind] += 0.25
-					binstn[rind,pind] += (hvyp[it]) * 0.25
-					prcstn[rind,pind] += (prcp[it]) * 0.25
-				end
-			end
+	for it = 1 : nt
+		if (prcp[it]>2.5) && !isnan(pwgt[it])
+			rind = argmin(abs.(prcp[it].-rpnt))
+			pind = argmin(abs.(pwgt[it].-ppnt))
+			numstn[rind,pind] += 1
+			binstn[rind,pind] += hvyp[it]
+			prcstn[rind,pind] += prcp[it]
 		end
 	end
 
@@ -181,7 +157,7 @@ end
 # ╔═╡ 9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 function threshold!(
 	bin,num,prc;
-	numthresh = 5
+	numthresh = 10
 )
 
 	bin[num.<numthresh] .= 0
@@ -255,31 +231,25 @@ function plotbin!(
 
 end
 
-# ╔═╡ 1343fbae-0ebd-4237-8273-0ebab8325424
+# ╔═╡ 987ab0fb-a376-4470-bcad-0e5681c6ca84
 function axesformat!(axesnum)
 
 	for ax in axesnum
 		ax.format(
-			ylim=(1,0),xlim=(0,100),xlocator=0:100:200,ylabel=L"$\sigma_\omega$",
-			xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$"
+			ylim=(1000,0),xlim=(0,100),xlocator=0:100:200,ylocator=0:250:1000,
+			xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$",
+			leftlabels=["ITCZ","CrossITCZ","PAC2ATL"]
 		)
 	end
 
-	axesnum[2].format(ultitle="(a) All Stations")
-	axesnum[2].format(ultitle="(a) Colombia")
-	axesnum[4].format(ultitle="(b) San Andres")
-	axesnum[6].format(ultitle="(c) Buenaventura")
-	axesnum[6].text(45,0.270,"Bahia Solano",fontsize=10)
-	axesnum[8].format(ultitle="(d) Quibdo")
-	axesnum[10].format(ultitle="(e) Costa Rica")
-	axesnum[12].format(ultitle="(f) EEFMB")
-	axesnum[12].text(39,0.270,"ADMQ",fontsize=10)
-	axesnum[12].text(39,0.390,"CGFI",fontsize=10)
-	axesnum[14].format(ultitle="(g) Cahuita")
-	axesnum[14].text(45,0.270,"Bataan",fontsize=10)
-	axesnum[14].text(45,0.390,"Limon",fontsize=10)
-	axesnum[16].format(ultitle="(h) Liberia")
-	axesnum[16].text(45,0.270,"OSA",fontsize=10)
+	for ii = 1 : 5
+		axesnum[2*ii].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
+		axesnum[2*ii+10].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
+		axesnum[2*ii+20].format(ultitle="$((ii-1)*5+1)-$(5*ii)")
+	end
+	
+	naxs = length(axesnum)
+	axesnum[12].format(ylabel=L"$p_\omega$ / hPa")
 
 	return
 
@@ -287,8 +257,8 @@ end
 
 # ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
 begin
-	rbin = 0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
-	pbin = 0 : 0.05 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
+	rbin =  0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
+	pbin = 0 : 50 : 1000; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
 	nr = length(rpnt); np = length(ppnt)
 	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
 	bbin = zeros(nr,np); bnum = zeros(nr,np); bprc = zeros(nr,np)
@@ -299,10 +269,16 @@ begin
 	gbin = zeros(nr,np); gnum = zeros(nr,np); gprc = zeros(nr,np)
 	hbin = zeros(nr,np); hnum = zeros(nr,np); hprc = zeros(nr,np)
 	ibin = zeros(nr,np); inum = zeros(nr,np); iprc = zeros(nr,np)
+	jbin = zeros(nr,np); jnum = zeros(nr,np); jprc = zeros(nr,np)
+	kbin = zeros(nr,np); knum = zeros(nr,np); kprc = zeros(nr,np)
+	lbin = zeros(nr,np); lnum = zeros(nr,np); lprc = zeros(nr,np)
+	mbin = zeros(nr,np); mnum = zeros(nr,np); mprc = zeros(nr,np)
+	nbin = zeros(nr,np); nnum = zeros(nr,np); nprc = zeros(nr,np)
+	obin = zeros(nr,np); onum = zeros(nr,np); oprc = zeros(nr,np)
 	md"Preallocation of arrays ..."
 end
 
-# ╔═╡ b6500812-fd5e-4842-8855-655822d170f4
+# ╔═╡ c57ae725-3056-481c-a004-a916192744be
 # ╠═╡ show_logs = false
 begin
 	abin .= 0; aprc .= 0; anum .= 0
@@ -314,53 +290,91 @@ begin
 	gbin .= 0; gprc .= 0; gnum .= 0
 	hbin .= 0; hprc .= 0; hnum .= 0
 	ibin .= 0; iprc .= 0; inum .= 0
+	jbin .= 0; jprc .= 0; jnum .= 0
+	kbin .= 0; kprc .= 0; knum .= 0
+	lbin .= 0; lprc .= 0; lnum .= 0
+	mbin .= 0; mprc .= 0; mnum .= 0
+	nbin .= 0; nprc .= 0; nnum .= 0
+	obin .= 0; oprc .= 0; onum .= 0
 	
-	for istn = 1
-		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 1 : 5
+		binning!(abin,anum,aprc,rpnt,ppnt,ID=istn,prfx="ITCZ",iso="O18",days=7)
 	end
-	for istn = [3,4]
-		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 6 : 10
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,prfx="ITCZ",iso="O18",days=7)
 	end
-	for istn = 2
-		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 11 : 15
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,prfx="ITCZ",iso="O18",days=7)
 	end
-	for istn = 5 : 7
-		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 16 : 20
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,prfx="ITCZ",iso="O18",days=7)
 	end
-	for istn = 9 : 11
-		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 21 : 25
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,prfx="ITCZ",iso="O18",days=7)
 	end
-	for istn = [8,12]
-		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	for istn = 1 : 5
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,prfx="CrossITCZ",iso="O18",days=7)
 	end
-
-	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
-	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
-	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+	for istn = 6 : 10
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,prfx="CrossITCZ",iso="O18",days=7)
+	end
+	for istn = 11 : 15
+		binning!(hbin,hnum,hprc,rpnt,ppnt,ID=istn,prfx="CrossITCZ",iso="O18",days=7)
+	end
+	for istn = 16 : 20
+		binning!(ibin,inum,iprc,rpnt,ppnt,ID=istn,prfx="CrossITCZ",iso="O18",days=7)
+	end
+	for istn = 21 : 25
+		binning!(jbin,jnum,jprc,rpnt,ppnt,ID=istn,prfx="CrossITCZ",iso="O18",days=7)
+	end
+	for istn = 1 : 5
+		binning!(kbin,knum,kprc,rpnt,ppnt,ID=istn,prfx="PAC2ATL",iso="O18",days=7)
+	end
+	for istn = 6 : 10
+		binning!(lbin,lnum,lprc,rpnt,ppnt,ID=istn,prfx="PAC2ATL",iso="O18",days=7)
+	end
+	for istn = 11 : 14
+		binning!(mbin,mnum,mprc,rpnt,ppnt,ID=istn,prfx="PAC2ATL",iso="O18",days=7)
+	end
+	for istn = 16 : 20
+		binning!(nbin,nnum,nprc,rpnt,ppnt,ID=istn,prfx="PAC2ATL",iso="O18",days=7)
+	end
+	for istn = 21 : 25
+		binning!(obin,onum,oprc,rpnt,ppnt,ID=istn,prfx="PAC2ATL",iso="O18",days=7)
+	end
 	
-	pplt.close(); f1,a1 = pplt.subplots(
-		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
-		aspect=0.5,axwidth=0.6,wspace=[0,1.5,0,1.5,0,1.5,0]
+	pplt.close(); f2,a2 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7,10,9],
+		[12,11,14,13,16,15,18,17,20,19],
+		[22,21,24,23,26,25,28,27,30,29]],
+		aspect=0.5,axwidth=0.6,wspace=[0,1.5,0,1.5,0,1.5,0,1.5,0]
 	)
 
-	c1_1,c1_2 = 
-	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-12:0.5:-7,returncinfo=true)
-	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-12:0.5:-7)
-	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-12:0.5:-7)
-	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-12:0.5:-7)
-	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-12:0.5:-7)
-	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-12:0.5:-7)
-	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-12:0.5:-7)
-	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-12:0.5:-7)
+	c2_1,c2_2 = 
+	plotbin!(a2,1, rbin,pbin,abin,aprc,anum,-12:0.5:-6.5,returncinfo=true)
+	plotbin!(a2,2, rbin,pbin,bbin,bprc,bnum,-12:0.5:-6.5)
+	plotbin!(a2,3, rbin,pbin,cbin,cprc,cnum,-12:0.5:-6.5)
+	plotbin!(a2,4, rbin,pbin,dbin,dprc,dnum,-12:0.5:-6.5)
+	plotbin!(a2,5, rbin,pbin,ebin,eprc,enum,-12:0.5:-6.5)
+	plotbin!(a2,6, rbin,pbin,fbin,fprc,fnum,-12:0.5:-6.5)
+	plotbin!(a2,7, rbin,pbin,gbin,gprc,gnum,-12:0.5:-6.5)
+	plotbin!(a2,8, rbin,pbin,hbin,hprc,hnum,-12:0.5:-6.5)
+	plotbin!(a2,9, rbin,pbin,ibin,iprc,inum,-12:0.5:-6.5)
+	plotbin!(a2,10,rbin,pbin,jbin,jprc,jnum,-12:0.5:-6.5)
+	plotbin!(a2,11,rbin,pbin,kbin,kprc,knum,-12:0.5:-6.5)
+	plotbin!(a2,12,rbin,pbin,lbin,lprc,lnum,-12:0.5:-6.5)
+	plotbin!(a2,13,rbin,pbin,mbin,mprc,mnum,-12:0.5:-6.5)
+	plotbin!(a2,14,rbin,pbin,nbin,nprc,nnum,-12:0.5:-6.5)
+	plotbin!(a2,15,rbin,pbin,obin,oprc,onum,-12:0.5:-6.5)
 
-	axesformat!(a1)
-	a1[1].format(suptitle="7-Day WRF Moving Average")
+	axesformat!(a2)
+	a2[1].format(suptitle="7-Day WRF Moving Average")
 
-	f1.colorbar(c1_1,loc="r",rows=1,locator=-22:2:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
-	f1.colorbar(c1_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
+	f2.colorbar(c2_1,row=[1],locator=-20:4:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
+	f2.colorbar(c2_2,row=[2],locator=0:10:50,label="Number of Observations")
 	
-	f1.savefig(projectdir("figures","figS5-wrfdeplete.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS5-wrfdeplete.png"))
+	f2.savefig(projectdir("figures","figX-idealdeplete.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figX-idealdeplete.png"))
 end
 
 # ╔═╡ Cell order:
@@ -374,6 +388,6 @@ end
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
-# ╟─1343fbae-0ebd-4237-8273-0ebab8325424
+# ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╠═b6500812-fd5e-4842-8855-655822d170f4
+# ╟─c57ae725-3056-481c-a004-a916192744be
