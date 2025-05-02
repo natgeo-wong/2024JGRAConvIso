@@ -114,13 +114,12 @@ function extract(geoname,iso,days)
 
 	dsp = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-p_wwgt3-daily-20190801_20201231-smooth_$(dystr)days.nc"
+		"$geoname-p_wwgt2-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
-	pbl = dsp["P"][end,:] / 100 * 0.8; pbl[pbl.>800] .= 800
 	close(dsp)
 
-	return pbl .+ pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
+	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
 end
 
@@ -248,7 +247,7 @@ function axesformat!(axesnum)
 	
 	naxs = length(axesnum)
 	# axesnum[2].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
-	axesnum[12].format(ylabel=L"$p_{bl} + p_{q\omega,bl}$ / hPa")
+	axesnum[12].format(ylabel=L"$p_{q\omega}$ / hPa")
 	# axesnum[22].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
 
 	return
@@ -373,8 +372,8 @@ begin
 	f2.colorbar(c2_1,row=[1],locator=-20:4:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
 	f2.colorbar(c2_2,row=[2],locator=0:10:50,label="Number of Observations")
 	
-	f2.savefig(projectdir("figures","fig6-pqomega.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig6-pqomega.png"))
+	f2.savefig(projectdir("figures","fig6b-pqomega.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig6b-pqomega.png"))
 end
 
 # ╔═╡ Cell order:
@@ -384,7 +383,7 @@ end
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
 # ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
 # ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
-# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╠═4319fd0e-fd9f-424e-9286-3b3b5a844b73
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
 # ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
