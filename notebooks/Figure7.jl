@@ -175,7 +175,7 @@ end
 
 # ╔═╡ 30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
 begin
-	pplt.close(); fig,axs = pplt.subplots(nrows=6,ncols=3,aspect=2,axwidth=1.5,sharey=0,hspace=[1,1,2,1,1])
+	pplt.close(); fig,axs = pplt.subplots(nrows=6,ncols=3,aspect=1.5,axwidth=1.5,sharey=0,hspace=[1,1,2,1,1])
 
 	c1 =
 	plotcdqdp(axs,1,nID=25,pmin=2.5,pmax=15,days=7,cinfo=true,prfx="ITCZ")
@@ -217,7 +217,7 @@ end
 # ╟─ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
 # ╟─582476a4-e280-458b-ac4c-7c681ff96a74
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
-# ╠═10d1c691-00a7-47de-a8ca-8debcd3346c1
-# ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
-# ╠═c793412d-71b6-4f2c-a9f4-15da6ec039e4
+# ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
+# ╟─d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
+# ╟─c793412d-71b6-4f2c-a9f4-15da6ec039e4
 # ╠═30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
