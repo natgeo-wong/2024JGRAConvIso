@@ -181,7 +181,7 @@ begin
 	axs[3].format(title="PAC2ATL",xlabel="Region Number")
 
 	for ax in axs
-		ax.format(ylim=(900,350),ylocator=[500,750],ylabel=L"$p_{q\omega,bl}+p_{bl}$ / hPa",leftlabels=["2.5 < P < 15","15 < P < 30","P > 30"])
+		ax.format(ylim=(900,350),ylocator=[500,750],ylabel=L"$p_{q\omega,bl}$ / hPa",leftlabels=["2.5 < P < 15","15 < P < 30","P > 30"])
 	end
 
 	fig.colorbar(cbar,label=L"$\delta^{18}$O",locator=-25:5:0)
@@ -196,7 +196,7 @@ end
 # ╟─ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
 # ╟─582476a4-e280-458b-ac4c-7c681ff96a74
 # ╟─6aff97ec-0bd3-4d84-9d5c-93393941ca4e
-# ╠═10d1c691-00a7-47de-a8ca-8debcd3346c1
-# ╠═d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
-# ╠═405dd308-1b04-4487-b1b2-86ff17459167
-# ╠═deaed5af-5700-418f-a6f1-05e0c0637d75
+# ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
+# ╟─d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
+# ╟─405dd308-1b04-4487-b1b2-86ff17459167
+# ╟─deaed5af-5700-418f-a6f1-05e0c0637d75
