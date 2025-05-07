@@ -113,10 +113,17 @@ begin
 		eprcp = smooth(eprcp,30)
 		close(erads)
 
-		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),wprcp)
-		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),gprcp)
-		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),eprcp)
-		axs[istn].format(ultitle="$(infody[istn,1])")
+		if istn != 6
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),wprcp)
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),gprcp)
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),eprcp)
+			axs[istn].format(ultitle="$(infody[istn,1])")
+		else
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),wprcp,legend="r",legend_kw=Dict("frame"=>false,"ncol"=>1),label="WRF")
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),gprcp,legend="r",legend_kw=Dict("frame"=>false,"ncol"=>1),label="IMERGv7")
+			axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),eprcp,legend="r",legend_kw=Dict("frame"=>false,"ncol"=>1),label="ERA5")
+			axs[istn].format(ultitle="$(infody[istn,1])")
+		end
 
 	end
 	
@@ -143,4 +150,4 @@ end
 # ╠═c861ddee-1416-497c-a1e8-9ad1baadbcaf
 # ╠═afeeef68-3bf9-43c6-80e3-f84dbcbe6872
 # ╠═6f5a6bf4-5b6e-4e63-a35b-ebeb87b33187
-# ╟─b74efe40-6288-4b27-b757-5d0771f2552e
+# ╠═b74efe40-6288-4b27-b757-5d0771f2552e
