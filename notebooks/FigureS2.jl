@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -128,7 +128,7 @@ begin
 		ax.format(
 			xlim=(geo.W-1,geo.E+1),xlabel=L"Longitude / $\degree$",
 			ylim=(geo.S-1,geo.N+1),ylabel=L"Latitude / $\degree$",
-			suptitle = "Mean Rainfall Rate (2019 Aug - 2020 Dec)"
+			suptitle = "(a) Mean Rainfall Rate (2019 Aug - 2020 Dec)"
 		)
 	end
 
@@ -154,4 +154,4 @@ end
 # ╠═d982d95e-e9d8-4e5b-a706-0589a4eb4df8
 # ╟─5c9367e4-35a7-4e5a-83e6-ff70a108e340
 # ╠═6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-# ╠═b74efe40-6288-4b27-b757-5d0771f2552e
+# ╟─b74efe40-6288-4b27-b757-5d0771f2552e

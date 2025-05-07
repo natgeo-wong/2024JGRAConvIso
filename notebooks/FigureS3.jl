@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -38,120 +38,109 @@ md"
 In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
 "
 
-# ╔═╡ 4579f773-e2b4-4b1f-a8c1-485341d451fc
-begin
-	coast = readdlm(datadir("coast.cst"),comments=true,comment_char='#')
-	x = coast[:,1]
-	y = coast[:,2]
-	md"Loading coastlines data ..."
+# ╔═╡ a27a0d50-d460-4908-b0a6-c4bdf6b19d21
+function calculatebufferweights(shiftsteps)
+
+    buffer = Int(ceil((shiftsteps-1)/2))
+    weights = ones(buffer*2+1)
+    if buffer >= (shiftsteps/2)
+        weights[1] = 0.5
+        weights[end] = 0.5
+    end
+    weights /= shiftsteps
+    return buffer,weights
+
 end
 
-# ╔═╡ 7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
-npd = IMERGFinalHH(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
+# ╔═╡ 64c5c24e-6c15-444f-abc5-0e04afe562e8
+function smooth(data::AbstractVector,days)
 
-# ╔═╡ c0799dcd-7c88-4f75-ac19-76b615ff4454
-e5ds = ERA5Hourly(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
+        buffer,weights = calculatebufferweights(days)
 
-# ╔═╡ 538d96e5-ed7b-477a-8f3a-959a9b978ec5
-geo = GeoRegion("OTREC_wrf_d02",path=srcdir())
+        ndt = length(data)
+        ndata = fill(NaN,ndt)
+        smth  = zeros(1+buffer*2)
 
-# ╔═╡ 9a455f45-592c-43ab-a71c-d1de27bf8552
-egeo = ERA5Region(geo)
+        for ii in (1+buffer) : (ndt-buffer)
 
-# ╔═╡ a822f787-214a-4ef3-ba54-b899e890aeff
-nlsd = getLandSea(npd,geo)
+                for ismth = 0 : (buffer*2)
+                        smth[ismth+1] = data[ii+ismth-buffer] * weights[ismth+1]
+                end
+                ndata[ii] = sum(smth)
 
-# ╔═╡ 5260b50e-7436-4afa-96b4-3e9ac1d26229
-elsd = getLandSea(e5ds,egeo)
+        end
 
-# ╔═╡ 0e89ce44-1788-4744-8170-cccb4aecd220
-begin
-	prcp  = zeros(length(nlsd.lon),length(nlsd.lat))
-	dtvec = npd.start : Day(1) : npd.stop
-	for idt in dtvec
-		ids = read(npd,geo,idt)
-		prcp[:,:] += mean(ids["precipitation"][:,:,:],dims=3) * 86400
-		close(ids)
-	end
-	prcp ./= length(dtvec)
+        return ndata
+
 end
 
-# ╔═╡ d982d95e-e9d8-4e5b-a706-0589a4eb4df8
+# ╔═╡ 507ed308-9a21-4f74-92bb-1020acc7dacd
 begin
-	wnds = NCDataset(datadir("wrf","regridded","gpm-RAINNC-20190801_20201231.nc"))
-	wprcp = dropdims(mean(wnds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
-	close(wnds)
+	infody  = stninfody(); ndystn = size(infody,1)
+	md"Loading station location information ..."
 end
 
-# ╔═╡ 5c9367e4-35a7-4e5a-83e6-ff70a108e340
-begin
-	eprcp = zeros(length(elsd.lon),length(elsd.lat))
-	edtvec = e5ds.start : Month(1) : e5ds.stop
-	evar = SingleVariable("tp")
-	for idt in edtvec
-		ids = read(e5ds,evar,egeo,idt)
-		eprcp[:,:] += sum(ids[evar.ID][:,:,:],dims=3) * 1000
-		close(ids)
-	end
-	eprcp ./= length(dtvec)
-end
+# ╔═╡ c861ddee-1416-497c-a1e8-9ad1baadbcaf
 
-# ╔═╡ 6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-begin
-	weds = NCDataset(datadir("wrf","regridded","era-RAINNC-20190801_20201231.nc"))
-	weprcp = dropdims(mean(weds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
-	close(weds)
-end
+
+# ╔═╡ afeeef68-3bf9-43c6-80e3-f84dbcbe6872
+
+
+# ╔═╡ 6f5a6bf4-5b6e-4e63-a35b-ebeb87b33187
+
 
 # ╔═╡ b74efe40-6288-4b27-b757-5d0771f2552e
 begin
-	asp = (geo.N-geo.S+2)/(geo.E-geo.W+2)
-	pplt.close(); fig,axs = pplt.subplots(nrows=2,ncols=3,axwidth=1.5,aspect=asp)
-	
-	c1 = axs[1].pcolormesh(nlsd.lon,nlsd.lat,prcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[2].pcolormesh(nlsd.lon,nlsd.lat,wprcp',levels=2:2:30,cmap="Blues",extend="both")
-	c2 = axs[3].pcolormesh(nlsd.lon,nlsd.lat,(wprcp.-prcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
-	
-	axs[4].pcolormesh(elsd.lon,elsd.lat,eprcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[5].pcolormesh(elsd.lon,elsd.lat,weprcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[6].pcolormesh(elsd.lon,elsd.lat,(weprcp.-eprcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
+	pplt.close()
+	fig,axs = pplt.subplots(ncols=3,nrows=4,aspect=3,axwidth=1.5,hspace=1,wspace=1)
 
-	axs[1].format(ultitle="(a) IMERGv7")
-	axs[2].format(ultitle="(b) Regridded WRF")
-	axs[3].format(ultitle="(c) WRF - IMERGv7")
-	axs[4].format(ultitle="(d) ERA5")
-	axs[5].format(ultitle="(e) Regridded WRF")
-	axs[6].format(ultitle="(f) WRF - ERA5")
+	for istn = 1 : 12
+
+		stnstr = @sprintf("%02d",istn)
+		geo = GeoRegion("OTREC_wrf_stn$stnstr",path=srcdir())
+
+		wrfds = NCDataset(datadir("wrf","processed","$(geo.ID)-rain-daily-20190801_20201231-smooth_30days.nc"))
+		wprcp = wrfds["RAINNC"][:]
+		close(wrfds)
+
+		gpmds = NCDataset(datadir("wrf","processed","$(geo.ID)-gpmrain-20190801_20201231.nc"))
+		gprcp = dropdims(mean(reshape(gpmds["precipitation"][:],24,:),dims=1),dims=1) * 86400
+		gprcp = smooth(gprcp,30)
+		close(gpmds)
+
+		erads = NCDataset(datadir("wrf","processed","$(geo.ID)-erarain-20190801_20201231.nc"))
+		eprcp = dropdims(sum(reshape(erads["precipitation"][:],24,:),dims=1),dims=1)
+		eprcp = smooth(eprcp,30)
+		close(erads)
+
+		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),wprcp)
+		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),gprcp)
+		axs[istn].plot(Date(2019,8,1):Day(1):Date(2020,12,31),eprcp)
+		axs[istn].format(ultitle="$(infody[istn,1])")
+
+	end
+	
 
 	for ax in axs
-		ax.plot(x,y,lw=0.5,c="k")
 		ax.format(
-			xlim=(geo.W-1,geo.E+1),xlabel=L"Longitude / $\degree$",
-			ylim=(geo.S-1,geo.N+1),ylabel=L"Latitude / $\degree$",
-			suptitle = "Mean Rainfall Rate (2019 Aug - 2020 Dec)"
+			xlabel = "Date",
+			ylabel = L"Precipitation / mm day$^{-1}$", ylim = (0,60),
+			suptitle = "(b) 30-Day Smoothed Rainfall Rate"
 		)
 	end
-
-	axs[3].colorbar(c1,label=L"$\mu$ / mm day$^{-1}$")
-	axs[6].colorbar(c2,label=L"$\Delta$ / mm day$^{-1}$")
 	
-	fig.savefig(projectdir("figures","figS2-imergvswrfvsera.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS2-imergvswrfvsera.png"))
+	fig.savefig(projectdir("figures","figS3-seasonal.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS3-seasonal.png"))
 end
 
 # ╔═╡ Cell order:
 # ╟─a8431d46-46fe-11ec-2b8d-e39caffdabec
 # ╟─b3bc56eb-43a7-4736-bd66-704529911d60
 # ╟─9071763e-f6ad-4468-ae48-369307a85263
-# ╟─4579f773-e2b4-4b1f-a8c1-485341d451fc
-# ╠═7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
-# ╠═c0799dcd-7c88-4f75-ac19-76b615ff4454
-# ╠═538d96e5-ed7b-477a-8f3a-959a9b978ec5
-# ╠═9a455f45-592c-43ab-a71c-d1de27bf8552
-# ╟─a822f787-214a-4ef3-ba54-b899e890aeff
-# ╟─5260b50e-7436-4afa-96b4-3e9ac1d26229
-# ╟─0e89ce44-1788-4744-8170-cccb4aecd220
-# ╠═d982d95e-e9d8-4e5b-a706-0589a4eb4df8
-# ╟─5c9367e4-35a7-4e5a-83e6-ff70a108e340
-# ╠═6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-# ╠═b74efe40-6288-4b27-b757-5d0771f2552e
+# ╟─a27a0d50-d460-4908-b0a6-c4bdf6b19d21
+# ╟─64c5c24e-6c15-444f-abc5-0e04afe562e8
+# ╠═507ed308-9a21-4f74-92bb-1020acc7dacd
+# ╠═c861ddee-1416-497c-a1e8-9ad1baadbcaf
+# ╠═afeeef68-3bf9-43c6-80e3-f84dbcbe6872
+# ╠═6f5a6bf4-5b6e-4e63-a35b-ebeb87b33187
+# ╟─b74efe40-6288-4b27-b757-5d0771f2552e
