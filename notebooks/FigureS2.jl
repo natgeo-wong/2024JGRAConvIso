@@ -116,12 +116,12 @@ begin
 	axs[5].pcolormesh(elsd.lon,elsd.lat,weprcp',levels=2:2:30,cmap="Blues",extend="both")
 	axs[6].pcolormesh(elsd.lon,elsd.lat,(weprcp.-eprcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
 
-	axs[1].format(ultitle="(a) IMERGv7")
-	axs[2].format(ultitle="(b) Regridded WRF")
-	axs[3].format(ultitle="(c) WRF - IMERGv7")
-	axs[4].format(ultitle="(d) ERA5")
-	axs[5].format(ultitle="(e) Regridded WRF")
-	axs[6].format(ultitle="(f) WRF - ERA5")
+	axs[1].format(ultitle="IMERGv7")
+	axs[2].format(ultitle="Regridded WRF")
+	axs[3].format(ultitle="WRF - IMERGv7")
+	axs[4].format(ultitle="ERA5")
+	axs[5].format(ultitle="Regridded WRF")
+	axs[6].format(ultitle="WRF - ERA5")
 
 	for ax in axs
 		ax.plot(x,y,lw=0.5,c="k")
@@ -154,4 +154,4 @@ end
 # ╠═d982d95e-e9d8-4e5b-a706-0589a4eb4df8
 # ╟─5c9367e4-35a7-4e5a-83e6-ff70a108e340
 # ╠═6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-# ╟─b74efe40-6288-4b27-b757-5d0771f2552e
+# ╠═b74efe40-6288-4b27-b757-5d0771f2552e
