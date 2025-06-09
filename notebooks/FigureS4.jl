@@ -120,8 +120,8 @@ begin
 	end
 
 	f1.colorbar(c,label="Number of Observations")
-	f1.savefig(plotsdir("figS4a-wrfqbudget.png"),transparent=false,dpi=400)
-	load(plotsdir("figS4a-wrfqbudget.png"))
+	f1.savefig(projectdir("figures","figS4a-wrfqbudget.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS4a-wrfqbudget.png"))
 end
 
 # ╔═╡ 7fdb55f7-2888-4937-8409-88331c8c53c4
@@ -180,8 +180,8 @@ begin
 	end
 
 	f2.colorbar(c2,label="Number of Observations")
-	f2.savefig(plotsdir("figS4b-wrfqbudget-smooth07.png"),transparent=false,dpi=400)
-	load(plotsdir("figS4b-wrfqbudget-smooth07.png"))
+	f2.savefig(projectdir("figures","figS4b-wrfqbudget-smooth07.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS4b-wrfqbudget-smooth07.png"))
 end
 
 # ╔═╡ de530257-c736-4c3d-8483-7bc22b33f9de

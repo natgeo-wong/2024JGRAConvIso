@@ -120,8 +120,8 @@ begin
 	axs[2].format(xlim=(-87,-82),ylim=(7,12))
 
 	fig.colorbar(c,label="Topographic Height / km")
-	fig.savefig(plotsdir("figS5-validboxes.png"),transparent=false,dpi=150)
-	load(plotsdir("figS5-validboxes.png"))
+	fig.savefig(projectdir("figures","figS5-validboxes.png"),transparent=false,dpi=150)
+	load(projectdir("figures","figS5-validboxes.png"))
 end
 
 # ╔═╡ Cell order:
