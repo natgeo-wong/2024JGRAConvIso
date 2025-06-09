@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.10
 
 using Markdown
 using InteractiveUtils
@@ -32,9 +32,7 @@ end
 
 # ╔═╡ fa2f8740-f813-11ec-00e1-112e2dfacda7
 md"
-# 01d. Creating GeoRegions for Stations
-
-In this notebook, we define additional GeoRegions of interest for plotting and for analysis based on WRF modelling output and as necessary for figures.
+# Figure S8. Comparing the Different Indices for Top/Bottom-Heaviness
 "
 
 # ╔═╡ ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
@@ -203,5 +201,5 @@ end
 # ╟─fa426522-25e6-4b80-80f1-40d74d02e7fe
 # ╟─ec7a951c-bd32-40b5-9cc1-5326dec119bf
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
-# ╠═405dd308-1b04-4487-b1b2-86ff17459167
+# ╟─405dd308-1b04-4487-b1b2-86ff17459167
 # ╟─deaed5af-5700-418f-a6f1-05e0c0637d75

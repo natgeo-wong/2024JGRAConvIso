@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.10
 
 using Markdown
 using InteractiveUtils
@@ -31,7 +31,7 @@ end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# 03b. Station W-Weighted Pressure, $\sigma$
+# Figure S6. Station W-Weighted Pressure, $\sigma$, from WRF Modelling
 "
 
 # ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -364,7 +364,7 @@ begin
 end
 
 # ╔═╡ Cell order:
-# ╟─2e7c33da-f8b5-11ec-08f2-2581af96575f
+# ╠═2e7c33da-f8b5-11ec-08f2-2581af96575f
 # ╟─e32a00ee-5f32-47a1-a983-91fb77bc5d18
 # ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -376,4 +376,4 @@ end
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╠═b6500812-fd5e-4842-8855-655822d170f4
+# ╟─b6500812-fd5e-4842-8855-655822d170f4

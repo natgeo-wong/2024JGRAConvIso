@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.10
 
 using Markdown
 using InteractiveUtils
@@ -30,7 +30,7 @@ end
 
 # ╔═╡ a8431d46-46fe-11ec-2b8d-e39caffdabec
 md"
-# Figure 2. Station Rainfall and Isotopes
+# Figure S2. Station Rainfall and Isotopes
 
 In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
 "
@@ -124,4 +124,4 @@ end
 # ╟─9071763e-f6ad-4468-ae48-369307a85263
 # ╟─5b392d8a-d68b-44df-ab57-d0e81aedd668
 # ╟─cceac73b-b7d9-4418-b145-d45d384b61b8
-# ╠═0374f823-90a0-4dc6-be0e-9449a7fa7202
+# ╟─0374f823-90a0-4dc6-be0e-9449a7fa7202
