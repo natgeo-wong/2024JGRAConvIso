@@ -13,7 +13,7 @@ end
 
 # ╔═╡ bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 begin
-	@quickactivate "2024GLConvIso"
+	@quickactivate "2024JGRAConvIso"
 	using DelimitedFiles
 	using NCDatasets
 	using Printf
@@ -25,7 +25,7 @@ begin
 
 	include(srcdir("common.jl"))
 	
-	md"Loading modules for the 2024GLConvIso project..."
+	md"Loading modules for the 2024JGRAConvIso project..."
 end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f

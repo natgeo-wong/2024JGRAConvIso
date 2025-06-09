@@ -13,7 +13,7 @@ end
 
 # ╔═╡ ab294fae-101f-4587-a2f4-7d72254dd421
 begin
-	@quickactivate "2024GLConvIso"
+	@quickactivate "2024JGRAConvIso"
 	using DelimitedFiles
 	using ERA5Reanalysis
 	using NCDatasets
@@ -27,7 +27,7 @@ begin
 
 	include(srcdir("common.jl"))
 
-	md"Loading modules for the ConvectionIsotopes project..."
+	md"Loading modules for the 2024JGRAConvIso project..."
 end
 
 # ╔═╡ fa2f8740-f813-11ec-00e1-112e2dfacda7

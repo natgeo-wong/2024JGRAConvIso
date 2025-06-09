@@ -13,7 +13,7 @@ end
 
 # ╔═╡ b62ba51a-b7a8-433c-84dd-bd7d221ffa3c
 begin
-	@quickactivate "2024GLConvIso"
+	@quickactivate "2024JGRAConvIso"
 	using Dates
 	using ERA5Reanalysis
 	using NCDatasets
@@ -26,7 +26,7 @@ begin
 
 	include(srcdir("common.jl"))
 	
-	md"Loading modules for the 2024GLConvIso project..."
+	md"Loading modules for the 2024JGRAConvIso project..."
 end
 
 # ╔═╡ fc7b6caa-6ced-11ec-0701-6f55729e22dc

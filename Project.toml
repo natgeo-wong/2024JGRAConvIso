@@ -1,4 +1,4 @@
-name = "2024GLConvIso"
+name = "2024JGRAConvIso"
 authors = ["Nathanael Wong <natgeo.wong@outlook.com>"]
 
 [deps]
