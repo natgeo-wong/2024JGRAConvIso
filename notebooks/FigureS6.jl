@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -14,13 +14,15 @@ end
 # ╔═╡ bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 begin
 	@quickactivate "2024GLConvIso"
+	using DelimitedFiles
+	using GeoRegions
 	using NCDatasets
 	using Printf
-	using StatsBase
+	using Statistics
 	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
@@ -29,297 +31,349 @@ end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# 04a. Moisture Budget from WRF
+# 03b. Station W-Weighted Pressure, $\sigma$
 "
 
-# ╔═╡ 6ecf692f-a83b-4a97-abe0-5b9b0dd768c2
-function smooth(data::AbstractArray;days=0)
+# ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
+begin
+	infody = stninfody()[:,:]; nstn = size(infody,1)
+	md"Loading station location information ..."
+end
 
-	if !iszero(days)
-		hrs = days * 8
-		nt = length(data) - hrs
-		ndata = zeros(nt)
-	
-		for it = 1 : nt
-			for ii = 0 : (hrs-1)
-				ndata[it] += data[it+ii]  / hrs
-			end
+# ╔═╡ 441f47a7-5757-4b24-8b52-a2877e0f0287
+function calculatebufferweights(shiftsteps)
+
+    buffer = Int(ceil((shiftsteps-1)/2))
+    weights = ones(buffer*2+1)
+    if buffer >= (shiftsteps/2)
+        weights[1] = 0.5
+        weights[end] = 0.5
+    end
+    weights /= shiftsteps
+    return buffer,weights
+
+end
+
+# ╔═╡ f1720645-69a8-4f45-a6c1-8c06279d3590
+function smooth(data::AbstractVector,days)
+
+	buffer,weights = calculatebufferweights(days)
+
+	ndt = length(data)
+	ndata = fill(NaN,ndt)
+	smth  = zeros(1+buffer*2)
+
+	for ii in (1+buffer) : (ndt-buffer)
+
+		for ismth = 0 : (buffer*2)
+			smth[ismth+1] = data[ii+ismth-buffer] * weights[ismth+1]
 		end
-	else
-		ndata = deepcopy(data)
+		ndata[ii] = sum(smth)
+
 	end
 
 	return ndata
 
 end
 
-# ╔═╡ 5045b20b-925f-46a5-a6f6-d8cf20e2d79e
-begin
-	pplt.close()
-	f1,a1 = pplt.subplots(nrows=3,ncols=4,axwidth=1,wspace=1.5,hspace=1.5)
+# ╔═╡ 4319fd0e-fd9f-424e-9286-3b3b5a844b73
+function extract(geoname,iso,days)
 
-	xbin = -20:1:50
-	ybin = -20:1:50
+	dystr  = @sprintf("%02d",days)
 
-	for istn = 1 : 12
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-$(iso)QBUDGET-20190801_20201231.nc"
+	))
+	hvyp = smooth(dropdims(sum(reshape(ds["$(iso)P"][:],24,:),dims=1),dims=1),days)
+	hvye = smooth(dropdims(sum(reshape(ds["$(iso)E"][:],24,:),dims=1),dims=1),days)
+	close(ds)
 
-		wgts = zeros(length(xbin)-1,length(ybin)-1)
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-QBUDGET-20190801_20201231.nc"
+	))
+	prcp = smooth(dropdims(sum(reshape(ds["P"][:],24,:),dims=1),dims=1),days)
+	evap = smooth(dropdims(sum(reshape(ds["E"][:],24,:),dims=1),dims=1),days)
+	close(ds)
 
-		for ibox = 1 : 4
-			stnstr = @sprintf("%02d",istn)
-			boxstr = @sprintf("%02d",ibox)
-			gname  = "OTREC_STN$(stnstr)_$(boxstr)"
-			
-			ds = NCDataset(datadir("wrf","processed","$(gname)-QBUDGET.nc"))
-			p  = smooth(ds["P"][:],days=30)    / 3 * 24
-			e  = smooth(ds["E"][:],days=30) * 3600 * 24
-			∇  = smooth(ds["∇"][:],days=30) * 3600 * 24
-			Δ  = smooth(ds["ΔWVP"][:],days=30) / 3 * 24
-			close(ds)
-			ds = NCDataset(datadir("wrf","processed","$(gname)-∇decompose.nc"))
-			A  = smooth(ds["ADV"][:],days=30) * 3600 * 24
-			D  = smooth(ds["DIV"][:],days=30) * 3600 * 24
-			close(ds)
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-$(iso)∇decompose-20190801_20201231.nc"
+	))
+	hvya = smooth(dropdims(mean(reshape(ds["$(iso)ADV"][:],24,:),dims=1),dims=1),days) * 86400
+	close(ds)
 
-			h = fit(Histogram,(p,e.-∇.-Δ),(xbin,ybin))
-			wgts[:,:] += h.weights
-		end
+	ds = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-∇decompose-20190801_20201231.nc"
+	))
+	advc = smooth(dropdims(mean(reshape(ds["ADV"][:],24,:),dims=1),dims=1),days) * 86400
+	divg = smooth(dropdims(mean(reshape(ds["DIV"][:],24,:),dims=1),dims=1),days) * 86400
+	close(ds)
 
-		a1[istn].pcolormesh(xbin,ybin,wgts',levels=vcat(0:10)*10,extend="both")
-		a1[istn].plot([-100,150],[-100,150],c="k",lw=1,linestyle=":")
-		a1[istn].format(
-			suptitle="Moisture Budget Balancing",
-			xlim=(-25,25),xlocator=-20:10:50,
-			xlabel=L"P / kg m$^{-2}$ day$^{-1}$",
-			ylim=(-25,25),ylocator=-20:10:50,
-			ylabel=L"E $-\nabla - \Delta$ / kg m$^{-2}$ day$^{-1}$"
-		)
+	dsp = NCDataset(datadir(
+		"wrf","processed",
+		"$geoname-p_wwgt-daily-20190801_20201231-smooth_$(dystr)days.nc"
+	))
+	pwgt = dsp["p_wwgt"][:] / 100
+	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
+	pwgt = dsp["σ_wwgt"][:]
+	pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
+	close(dsp)
 
-	end
+	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
-	f1.savefig(plotsdir("04a-wrfqbudget.png"),transparent=false,dpi=400)
-	load(plotsdir("04a-wrfqbudget.png"))
 end
 
-# ╔═╡ 5074b541-5283-4b8d-9c2d-b93fe909fa93
-begin
-	pplt.close()
-	fig,axs = pplt.subplots(nrows=3,ncols=4,axwidth=1,wspace=1.5,hspace=1.5)
+# ╔═╡ 5bf90248-6ad6-4851-9c56-613d69f83d4b
+function binning!(
+	binstn,numstn,prcstn,
+	rpnt, ppnt;
+	ID, days=0, iso = "HDO"
+)
 
-	for istn = 1 : 12
+	iso = "$(iso)_"
+	stnstr = @sprintf("%02d",ID)
 
-		stnstr = @sprintf("%02d",istn)
-		ds = NCDataset(datadir("wrf","processed","OTREC_STN$stnstr-QBUDGET.nc"))
-		p  = smooth(ds["P"][:],days=30)    / 3 * 24
-		e  = smooth(ds["E"][:],days=30) * 3600 * 24
-		∇  = smooth(ds["∇"][:],days=30) * 3600 * 24
-		close(ds)
+	wvc = readdlm(datadir("wrf","wrfvscalc-smooth30.txt"))[ID,:]
+	qvl = readdlm(datadir("wrf","qbudgetdiff-smooth30.txt"))[ID,:]
 
-		h = fit(Histogram,(p,e.-∇),(xbin,ybin))
-
-		axs[istn].pcolormesh(xbin,ybin,h.weights',levels=0:2:20,extend="both")
-		axs[istn].plot([-100,100],[-100,100],c="k",lw=1,linestyle=":")
-		axs[istn].format(
-			suptitle="Moisture Budget Balancing",
-			xlim=(-5,50),xlocator=0:10:50,
-			xlabel=L"P / kg m$^{-2}$ day$^{-1}$",
-			ylim=(-5,50),ylocator=0:10:50,
-			ylabel=L"E $-\nabla - \Delta$ / kg m$^{-2}$ day$^{-1}$"
-		)
-
-	end
+	if (wvc[1] < 0.15) .& (qvl[1] < 0.05)
+		geoname = "OTREC_wrf_stn$stnstr"
+		pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
+		nt = length(prcp)
 	
-	fig.savefig(plotsdir("04a-wrfqbudget2.png"),transparent=false,dpi=400)
-	load(plotsdir("04a-wrfqbudget2.png"))
-end
-
-# ╔═╡ 37d37e56-528a-40f1-bd3f-e1a44e397b43
-begin
-	pplt.close()
-	f2,a2 = pplt.subplots(aspect=6,axwidth=4,nrows=3)
-
-	hbin = -50 : 0.2 : 50
-
-	for istn = 1 : 1
-
-		stnstr = @sprintf("%02d",istn)
-		ds = NCDataset(datadir("wrf","processed","OTREC_STN$stnstr-QBUDGET.nc"))
-		∇  = smooth(ds["∇"][:],days=7) * 86400
-		p  = smooth(ds["P"][:],days=7) * 8
-		close(ds)
-
-		h = fit(Histogram,∇,hbin)
-
-		a2[1].plot((hbin[1:(end-1)] .+ hbin[2:end])/2,h.weights)
-		a2[1].plot(ones(2)*mean(∇),[0,250],c="k",lw=1)
-		a2[1].plot(ones(2)*mean(p),[0,250],c="k",lw=1,linestyle="--")
-
-	end
-
-	for istn = 2 : 4
-
-		stnstr = @sprintf("%02d",istn)
-		ds = NCDataset(datadir("wrf","processed","OTREC_STN$stnstr-QBUDGET.nc"))
-		∇  = smooth(ds["∇"][:],days=7) * 86400
-		p  = smooth(ds["P"][:],days=7) * 8
-		close(ds)
-
-		h = fit(Histogram,∇,hbin)
-
-		a2[2].plot((hbin[1:(end-1)] .+ hbin[2:end])/2,h.weights)
-		a2[2].plot(ones(2)*mean(∇),[0,250],c="k",lw=1)
-		a2[2].plot(ones(2)*mean(p),[0,250],c="k",lw=1,linestyle="--")
-
-	end
-
-	for istn = 5 : 12
-
-		stnstr = @sprintf("%02d",istn)
-		ds = NCDataset(datadir("wrf","processed","OTREC_STN$stnstr-QBUDGET.nc"))
-		∇  = smooth(ds["∇"][:],days=7) * 86400
-		p  = smooth(ds["P"][:],days=7) * 8
-		close(ds)
-
-		h = fit(Histogram,∇,hbin)
-
-		a2[3].plot((hbin[1:(end-1)] .+ hbin[2:end])/2,h.weights)
-		a2[3].plot(ones(2)*mean(∇),[0,250],c="k",lw=1)
-		a2[3].plot(ones(2)*mean(p),[0,250],c="k",lw=1,linestyle="--")
-
-	end
-
-	for axs in a2
-		axs.format(xlabel=L"$\nabla$ / kg m$^{-2}$ day$^{-1}$",ylim=(0,50),xlim=(-50,50))
-	end
-	
-	f2.savefig(plotsdir("04a-∇histogram.png"),transparent=false,dpi=400)
-	load(plotsdir("04a-∇histogram.png"))
-end
-
-# ╔═╡ 3ef863fa-d34a-48a5-be60-f4f4527146ed
-begin
-	pplt.close()
-	f3,a3 = pplt.subplots(axwidth=2,wspace=1.5,hspace=1.5)
-
-	for istn = 1 : 12
-
-		stnstr = @sprintf("%02d",istn)
-
-		if istn == 1
-			clr = "b"
-			boxvec = 1 : 4
-		elseif istn >= 2 && istn <= 4
-			clr = "cyan"
-			boxvec = [1,3]
-		elseif istn >= 5 && istn <= 7
-			clr = "r"
-			boxvec = []
-		elseif istn >= 9 && istn <= 11
-			clr = "yellow4"
-			boxvec = [4]
-		else
-			clr = "orange"
-			boxvec = [1]
+		for it = 1 : nt
+			if ((prcp[it])>2.5) && !isnan(pwgt[it])
+				rind = argmin(abs.(prcp[it].-rpnt))
+				pind = argmin(abs.(pwgt[it].-ppnt))
+				numstn[rind,pind] += 1
+				binstn[rind,pind] += hvyp[it]
+				prcstn[rind,pind] += prcp[it]
+			end
 		end
+	end
 
-		xx = 0
-		yy = 0
-
-		for ibox = 1 : 4
-			boxstr = @sprintf("%02d",ibox)
-			gname  = "OTREC_STN$(stnstr)_$(boxstr)"
-			ds = NCDataset(datadir("wrf","processed","$(gname)-QBUDGET.nc"))
-			p  = ds["P"][:] * 8
-			e  = ds["E"][:] * 86400
-			Δ  = ds["ΔWVP"][:] * 8
-			∇  = ds["∇"][:] * 86400
-			close(ds)
-			ds = NCDataset(datadir("wrf","processed","$(gname)-∇decompose.nc"))
-			A  = ds["ADV"][:] * 86400
-			D  = ds["DIV"][:] * 86400
-			close(ds)
-
-			xx += mean(e.-∇) / 4
-			yy += mean(p) / 4
-	
-			a3[1].scatter(mean(-∇),mean(p),c=clr)
-			a3[1].scatter(mean(-∇.+A),mean(p.+A),c=clr,s=10)
-		end
-		gname  = "OTREC_STN$(stnstr)"
-		ds = NCDataset(datadir("wrf","processed","$(gname)-QBUDGET.nc"))
-		p  = ds["P"][:] * 8
-		e  = ds["E"][:] * 86400
-		Δ  = ds["ΔWVP"][:] * 8
-		∇  = ds["∇"][:] * 86400
-		close(ds)
-		ds = NCDataset(datadir("wrf","processed","$(gname)-∇decompose.nc"))
-			A  = ds["ADV"][:] * 86400
-			D  = ds["DIV"][:] * 86400
-		close(ds)
+	for ibox = 1 : 4
+		if (wvc[ibox+1] < 0.15) .& (qvl[ibox+1] < 0.05)
+			boxstr = @sprintf("%0d",ibox)
+			geoname = "OTREC_wrf_stn$(stnstr)_box$(boxstr)"
+			pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg = extract(geoname,iso,days)
+			nt = length(prcp)
 		
-		# a3[1].scatter(mean(-∇.+A),mean(p.+A),c=clr,s=10)
-		# a3[1].scatter(mean(-∇),mean(p),c=clr)
-		# a3[1].scatter(xx,yy,c=clr)
-		
-
+			for it = 1 : nt
+				if ((prcp[it])>2.5) && !isnan(pwgt[it])
+					rind = argmin(abs.(prcp[it].-rpnt))
+					pind = argmin(abs.(pwgt[it].-ppnt))
+					numstn[rind,pind] += 0.25
+					binstn[rind,pind] += (hvyp[it]) * 0.25
+					prcstn[rind,pind] += (prcp[it]) * 0.25
+				end
+			end
+		end
 	end
 
-	a3[1].plot([-100,100],[-100,100],c="k",lw=1,linestyle=":")
-	a3[1].format(
-		suptitle="Moisture Budget Balancing",
-		xlim=(-75,100),xlocator=-100:25:100,
-		xlabel=L"$\mu(E-\nabla)$ / kg m$^{-2}$ day$^{-1}$",
-		ylim=(-75,100),ylocator=-100:25:100,
-		ylabel=L"$\mu(P)$ / kg m$^{-2}$ day$^{-1}$"
+	return
+
+end
+
+# ╔═╡ 9d38e14e-7226-4d57-ba6f-3b3382dfce1c
+function threshold!(
+	bin,num,prc;
+	numthresh = 5
+)
+
+	bin[num.<numthresh] .= 0
+	prc[num.<numthresh] .= 0
+
+	return
+	
+end
+
+# ╔═╡ 6fc8d69a-81d1-47c4-8609-8ec7914bc935
+function plotbin!(
+	axesnum,ii,
+	rainbin,wgtpbin,
+	iibin, iiprc, iinum,
+	lvls;
+	returncinfo = true,
+	doalpha = false
+)
+
+	tmpbin = sum(iibin,dims=1)
+	tmpprc = sum(iiprc,dims=1)
+	tmpnum = sum(iinum,dims=1)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii].panel("l",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,(tmpbin./tmpprc.-1)' * 1000,
+		cmap="viridis",levels=lvls,extend="both"
 	)
-	
-	f3.savefig(plotsdir("04a-wrfqbudget-mean.png"),transparent=false,dpi=400)
-	load(plotsdir("04a-wrfqbudget-mean.png"))
+	ix.format(xlocator=[])
+
+	ix = axesnum[2*ii-1].panel("r",width="0.6em",space=0)
+	ix.pcolormesh(
+		[0,1],wgtpbin,tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(xlocator=[])
+
+	tmpbin = sum(iibin,dims=2)
+	tmpprc = sum(iiprc,dims=2)
+	tmpnum = sum(iinum,dims=2)
+	threshold!(tmpbin,tmpnum,tmpprc)
+	ix = axesnum[2*ii].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],(tmpbin./tmpprc.-1)' * 1000,
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	ix = axesnum[2*ii-1].panel("t",width="0.6em",space=0)
+	ix.pcolormesh(
+		rainbin,[0,1],tmpnum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+	ix.format(ylocator=[])
+
+	threshold!(iibin,iinum,iiprc)
+	c1 = axesnum[2*ii].pcolormesh(
+		rainbin,wgtpbin,(iibin./iiprc .- 1)' * 1000,
+		cmap="viridis",levels=lvls,extend="both"
+	)
+	c2 = axesnum[2*ii-1].pcolormesh(
+		rainbin,wgtpbin,iinum',
+		cmap="fire",levels=0:5:50,extend="both"
+	)
+
+	if returncinfo
+		return c1,c2
+	else
+		return
+	end
+
 end
 
-# ╔═╡ b7a241dc-4f92-4952-9c14-6311d7f36cad
-begin
-	pplt.close()
-	f4,a4 = pplt.subplots(nrows=3,ncols=4,axwidth=1,wspace=1.5,hspace=1.5)
+# ╔═╡ 1343fbae-0ebd-4237-8273-0ebab8325424
+function axesformat!(axesnum)
 
-	xbin1 = -3:0.1:3
-	ybin1 = -3:0.1:3
-
-	for istn = 1 : 12
-
-		stnstr = @sprintf("%02d",istn)
-		ds = NCDataset(datadir("wrf","processed","OTREC_STN$stnstr-QBUDGET.nc"))
-		p  = ds["P"][:] / 10800 * 1000
-		e  = ds["E"][:] * 1000
-		Δ  = ds["ΔWVP"][:] / 10800 * 1000
-		∇  = ds["∇"][:] * 1000
-		close(ds)
-
-		h = fit(Histogram,(e.-∇,Δ.+p),(xbin1,ybin1))
-
-		a4[istn].pcolormesh(xbin1,ybin1,h.weights',levels=vcat(0,1,2,3,5,7,10,15,20,30,50,70,100))
-		a4[istn].plot([-20,20],[-20,20],c="k",lw=1,linestyle=":")
-		a4[istn].format(
-			suptitle="Moisture Budget Balancing",
-			xlim=(-1.5,1.5),xlocator=-2:2,
-			xlabel=L"E - $\nabla$ (Import) / g m$^{-2}$ s$^{-1}$",
-			ylim=(-1.5,1.5),ylocator=-2:2,
-			ylabel=L"P + $\Delta$ (Export) / g m$^{-2}$ s$^{-1}$"
+	for ax in axesnum
+		ax.format(
+			ylim=(1,0),xlim=(0,100),xlocator=0:100:200,ylabel=L"$\sigma_\omega$",
+			xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$"
 		)
-
 	end
+
+	axesnum[2].format(ultitle="(a) All Stations")
+	axesnum[2].format(ultitle="(a) Colombia")
+	axesnum[4].format(ultitle="(b) San Andres")
+	axesnum[6].format(ultitle="(c) Buenaventura")
+	axesnum[6].text(45,0.270,"Bahia Solano",fontsize=10)
+	axesnum[8].format(ultitle="(d) Quibdo")
+	axesnum[10].format(ultitle="(e) Costa Rica")
+	axesnum[12].format(ultitle="(f) EEFMB")
+	axesnum[12].text(39,0.270,"ADMQ",fontsize=10)
+	axesnum[12].text(39,0.390,"CGFI",fontsize=10)
+	axesnum[14].format(ultitle="(g) Cahuita")
+	axesnum[14].text(45,0.270,"Bataan",fontsize=10)
+	axesnum[14].text(45,0.390,"Limon",fontsize=10)
+	axesnum[16].format(ultitle="(h) Liberia")
+	axesnum[16].text(45,0.270,"OSA",fontsize=10)
+
+	return
+
+end
+
+# ╔═╡ 2fd946e2-bf3e-406f-9a19-5aa72b5d1640
+begin
+	rbin = 0 : 10 : 250; rpnt = (rbin[1:(end-1)] .+ rbin[2:end]) / 2
+	pbin = 0 : 0.05 : 1; ppnt = (pbin[1:(end-1)] .+ pbin[2:end]) / 2
+	nr = length(rpnt); np = length(ppnt)
+	abin = zeros(nr,np); anum = zeros(nr,np); aprc = zeros(nr,np)
+	bbin = zeros(nr,np); bnum = zeros(nr,np); bprc = zeros(nr,np)
+	cbin = zeros(nr,np); cnum = zeros(nr,np); cprc = zeros(nr,np)
+	dbin = zeros(nr,np); dnum = zeros(nr,np); dprc = zeros(nr,np)
+	ebin = zeros(nr,np); enum = zeros(nr,np); eprc = zeros(nr,np)
+	fbin = zeros(nr,np); fnum = zeros(nr,np); fprc = zeros(nr,np)
+	gbin = zeros(nr,np); gnum = zeros(nr,np); gprc = zeros(nr,np)
+	hbin = zeros(nr,np); hnum = zeros(nr,np); hprc = zeros(nr,np)
+	ibin = zeros(nr,np); inum = zeros(nr,np); iprc = zeros(nr,np)
+	md"Preallocation of arrays ..."
+end
+
+# ╔═╡ b6500812-fd5e-4842-8855-655822d170f4
+# ╠═╡ show_logs = false
+begin
+	abin .= 0; aprc .= 0; anum .= 0
+	bbin .= 0; bprc .= 0; bnum .= 0
+	cbin .= 0; cprc .= 0; cnum .= 0
+	dbin .= 0; dprc .= 0; dnum .= 0
+	ebin .= 0; eprc .= 0; enum .= 0
+	fbin .= 0; fprc .= 0; fnum .= 0
+	gbin .= 0; gprc .= 0; gnum .= 0
+	hbin .= 0; hprc .= 0; hnum .= 0
+	ibin .= 0; iprc .= 0; inum .= 0
 	
-	f4.savefig(plotsdir("04a-wrfqbudget-invsout.png"),transparent=false,dpi=400)
-	load(plotsdir("04a-wrfqbudget-invsout.png"))
+	for istn = 1
+		binning!(bbin,bnum,bprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+	for istn = [3,4]
+		binning!(cbin,cnum,cprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+	for istn = 2
+		binning!(dbin,dnum,dprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+	for istn = 5 : 7
+		binning!(ebin,enum,eprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+	for istn = 9 : 11
+		binning!(fbin,fnum,fprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+	for istn = [8,12]
+		binning!(gbin,gnum,gprc,rpnt,ppnt,ID=istn,iso="O18",days=7)
+	end
+
+	hbin .= bbin.+cbin.+dbin; ibin .= ebin.+fbin.+gbin
+	hprc .= bprc.+cprc.+dprc; iprc .= eprc.+fprc.+gprc
+	hnum .= bnum.+cnum.+dnum; inum .= enum.+fnum.+gnum
+	
+	pplt.close(); f1,a1 = pplt.subplots(
+		[[2,1,4,3,6,5,8,7],[10,9,12,11,14,13,16,15]],
+		aspect=0.5,axwidth=0.6,wspace=[0,1.5,0,1.5,0,1.5,0]
+	)
+
+	c1_1,c1_2 = 
+	plotbin!(a1,1,rbin,pbin,hbin,hprc,hnum,-12:0.5:-7,returncinfo=true)
+	plotbin!(a1,2,rbin,pbin,bbin,bprc,bnum,-12:0.5:-7)
+	plotbin!(a1,3,rbin,pbin,cbin,cprc,cnum,-12:0.5:-7)
+	plotbin!(a1,4,rbin,pbin,dbin,dprc,dnum,-12:0.5:-7)
+	plotbin!(a1,5,rbin,pbin,ibin,iprc,inum,-12:0.5:-7)
+	plotbin!(a1,6,rbin,pbin,ebin,eprc,enum,-12:0.5:-7)
+	plotbin!(a1,7,rbin,pbin,fbin,fprc,fnum,-12:0.5:-7)
+	plotbin!(a1,8,rbin,pbin,gbin,gprc,gnum,-12:0.5:-7)
+
+	axesformat!(a1)
+	a1[1].format(suptitle="7-Day WRF Moving Average")
+
+	f1.colorbar(c1_1,loc="r",rows=1,locator=-22:2:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
+	f1.colorbar(c1_2,loc="r",rows=2,locator=0:10:50,label="Number of Observations")
+	
+	f1.savefig(projectdir("figures","figS6-wrfdeplete.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS6-wrfdeplete.png"))
 end
 
 # ╔═╡ Cell order:
 # ╟─2e7c33da-f8b5-11ec-08f2-2581af96575f
 # ╟─e32a00ee-5f32-47a1-a983-91fb77bc5d18
 # ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
-# ╟─6ecf692f-a83b-4a97-abe0-5b9b0dd768c2
-# ╟─5045b20b-925f-46a5-a6f6-d8cf20e2d79e
-# ╟─5074b541-5283-4b8d-9c2d-b93fe909fa93
-# ╟─37d37e56-528a-40f1-bd3f-e1a44e397b43
-# ╟─3ef863fa-d34a-48a5-be60-f4f4527146ed
-# ╠═b7a241dc-4f92-4952-9c14-6311d7f36cad
+# ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
+# ╟─441f47a7-5757-4b24-8b52-a2877e0f0287
+# ╟─f1720645-69a8-4f45-a6c1-8c06279d3590
+# ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
+# ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
+# ╟─9d38e14e-7226-4d57-ba6f-3b3382dfce1c
+# ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
+# ╟─1343fbae-0ebd-4237-8273-0ebab8325424
+# ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
+# ╠═b6500812-fd5e-4842-8855-655822d170f4

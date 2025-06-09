@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.10
 
 using Markdown
 using InteractiveUtils
@@ -31,7 +31,7 @@ end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# 03b. Station W-Weighted Pressure, $\sigma$
+# 06. Depletion in WRF for Idealized Regions (w/ Advection and Evaporation)
 "
 
 # ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -114,13 +114,15 @@ function extract(geoname,iso,days)
 
 	dsp = NCDataset(datadir(
 		"wrf","processed",
-		"$geoname-p_wwgt3-daily-20190801_20201231-smooth_$(dystr)days.nc"
+		"$geoname-p_wwgt-daily-20190801_20201231-smooth_$(dystr)days.nc"
 	))
 	pwgt = dsp["p_wwgt"][:] / 100
-	pbl = dsp["P"][end,:] / 100 * 0.8; pbl[pbl.>800] .= 800
+	pwgt[(pwgt.>1000).|(pwgt.<0)] .= NaN
+	# pwgt = dsp["σ_wwgt"][:]
+	# pwgt[(pwgt.>1).|(pwgt.<0)] .= NaN
 	close(dsp)
 
-	return pbl .+ pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
+	return pwgt,prcp,evap,advc,hvyp,hvye,hvya,divg
 	
 end
 
@@ -247,9 +249,7 @@ function axesformat!(axesnum)
 	end
 	
 	naxs = length(axesnum)
-	# axesnum[2].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
-	axesnum[12].format(ylabel=L"$p_{q\omega,bl}$ / hPa")
-	# axesnum[22].format(ylabel=L"$p_{sfc} - p'_{q\omega}$ / hPa")
+	axesnum[12].format(ylabel=L"$p_\omega$ / hPa")
 
 	return
 
@@ -351,15 +351,15 @@ begin
 	)
 
 	c2_1,c2_2 = 
-	plotbin!(a2,01,rbin,pbin,abin,aprc,anum,-20:-8,returncinfo=true)
-	plotbin!(a2,02,rbin,pbin,bbin,bprc,bnum,-20:-8)
-	plotbin!(a2,03,rbin,pbin,cbin,cprc,cnum,-20:-8)
-	plotbin!(a2,04,rbin,pbin,dbin,dprc,dnum,-20:-8)
-	plotbin!(a2,05,rbin,pbin,ebin,eprc,enum,-20:-8)
-	plotbin!(a2,06,rbin,pbin,fbin,fprc,fnum,-20:-8)
-	plotbin!(a2,07,rbin,pbin,gbin,gprc,gnum,-20:-8)
-	plotbin!(a2,08,rbin,pbin,hbin,hprc,hnum,-20:-8)
-	plotbin!(a2,09,rbin,pbin,ibin,iprc,inum,-20:-8)
+	plotbin!(a2,1,rbin,pbin,abin,aprc,anum,-20:-8,returncinfo=true)
+	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-20:-8)
+	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-20:-8)
+	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-20:-8)
+	plotbin!(a2,5,rbin,pbin,ebin,eprc,enum,-20:-8)
+	plotbin!(a2,6,rbin,pbin,fbin,fprc,fnum,-20:-8)
+	plotbin!(a2,7,rbin,pbin,gbin,gprc,gnum,-20:-8)
+	plotbin!(a2,8,rbin,pbin,hbin,hprc,hnum,-20:-8)
+	plotbin!(a2,9,rbin,pbin,ibin,iprc,inum,-20:-8)
 	plotbin!(a2,10,rbin,pbin,jbin,jprc,jnum,-20:-8)
 	plotbin!(a2,11,rbin,pbin,kbin,kprc,knum,-20:-8)
 	plotbin!(a2,12,rbin,pbin,lbin,lprc,lnum,-20:-8)
@@ -373,8 +373,8 @@ begin
 	f2.colorbar(c2_1,row=[1],locator=-20:4:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
 	f2.colorbar(c2_2,row=[2],locator=0:10:50,label="Number of Observations")
 	
-	f2.savefig(projectdir("figures","fig6-pqomega.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig6-pqomega.png"))
+	f2.savefig(projectdir("figures","fig6-idealadv.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig6-idealadv.png"))
 end
 
 # ╔═╡ Cell order:

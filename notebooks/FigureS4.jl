@@ -1,162 +1,343 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 1d7446ba-f464-44df-89e2-ae2a5726e849
+# ╔═╡ e32a00ee-5f32-47a1-a983-91fb77bc5d18
 begin
 	using Pkg; Pkg.activate()
 	using DrWatson
-	md"Using DrWatson in order to ensure reproducibility between different machines ..."
+	md"Using DrWatson to ensure reproducibility between different machines ..."
 end
 
-# ╔═╡ ab294fae-101f-4587-a2f4-7d72254dd421
+# ╔═╡ bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 begin
-	@quickactivate "2024GLConvIso"
+	@quickactivate "ConvectionIsotopes"
 	using DelimitedFiles
 	using GeoRegions
 	using NCDatasets
-	using PlutoUI
-
+	using Printf
+	using StatsBase
+	
 	using ImageShow, PNGFiles
 	using PyCall, LaTeXStrings
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
-
-	md"Loading modules for the 2024GLConvIso project..."
+	
+	md"Loading modules for the ConvectionIsotopes project..."
 end
 
-# ╔═╡ fa2f8740-f813-11ec-00e1-112e2dfacda7
+# ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# Figure 2. OTREC Region of Interest
+# 04a. Moisture Budget from WRF
 "
 
-# ╔═╡ ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
-TableOfContents()
+# ╔═╡ 6ecf692f-a83b-4a97-abe0-5b9b0dd768c2
+function smooth(data::AbstractArray;days=0)
 
-# ╔═╡ a6ab92dd-1fae-4a04-b8f3-6782ea67c60b
-md"
-### A. Loading Datasets and LandSea Masks ...
-"
+	if !iszero(days)
+		hrs = days * 24
+		nt = length(data) - hrs
+		ndata = zeros(nt)
+	
+		for it = 1 : nt
+			for ii = 0 : (hrs-1)
+				ndata[it] += data[it+ii]  / hrs
+			end
+		end
+	else
+		ndata = deepcopy(data)
+	end
 
-# ╔═╡ 189e1048-c92d-457e-a30e-f4e523b80afc
+	return ndata
+
+end
+
+# ╔═╡ afdf0526-f170-4ede-a4de-30cd6a12aefe
 begin
 	infoall = stninfoall()
-	infody  = stninfody()
+	infody  = stninfody(); ndystn = size(infody,1)
 	infomo  = stninfomo()
-	infocr  = stninfocostarica()
 	md"Loading station location information ..."
 end
 
-# ╔═╡ 32c650df-ccd2-4adf-a3b7-56611fff1b46
+# ╔═╡ 5045b20b-925f-46a5-a6f6-d8cf20e2d79e
 begin
-	coast = readdlm(datadir("coast.cst"),comments=true)
-	x = coast[:,1]
-	y = coast[:,2]
-	md"Preloading coastline data"
+	pplt.close()
+	f1,a1 = pplt.subplots(nrows=3,ncols=4,axwidth=1.2,wspace=1.5,hspace=1.5)
+
+	xbin = -5:0.2:10
+	ybin = -5:0.2:10
+	lvls = vcat(0.1,0.5,1,2:2:10,15,20) .* 100
+
+	for istn = 1 : 12
+
+		wgts = zeros(length(xbin)-1,length(ybin)-1)
+		stnstr = @sprintf("%02d",istn)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)",path=srcdir())
+			
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = ds["P"][:]
+		e  = ds["E"][:]
+		∇  = ds["∇"][:] * 3600
+		Δ  = ds["ΔWVP"][:]
+		close(ds)
+
+		h = fit(Histogram,(p.+Δ,-∇),(xbin,ybin))
+		wgts[:,:] += h.weights
+
+		for ibox = 1 : 4
+
+			geo = GeoRegion("OTREC_wrf_stn$(stnstr)_box$ibox",path=srcdir())
+
+			ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+			p  = ds["P"][:]
+			e  = ds["E"][:]
+			∇  = ds["∇"][:] * 3600
+			Δ  = ds["ΔWVP"][:]
+			close(ds)
+
+			h = fit(Histogram,(p.+Δ,-∇),(xbin,ybin))
+			wgts[:,:] += h.weights
+
+		end
+
+		global c = a1[istn].pcolormesh(xbin,ybin,wgts',levels=lvls,extend="both")
+		a1[istn].plot([-6,9],[-6,9],c="k",lw=1,linestyle="--")
+		a1[istn].plot([-6,9],[-6,9].+0.5*sqrt(2),c="grey",lw=1,linestyle=":")
+		a1[istn].plot([-6,9],[-6,9].-0.5*sqrt(2),c="grey",lw=1,linestyle=":")
+		a1[istn].format(
+			suptitle="(a) Moisture Budget Balancing",
+			ultitle=infody[istn,1],
+			xlim=(-6,6),#xlocator=-20:10:70,
+			ylim=(-6,6),#ylocator=-20:10:70,
+			xlabel=L"P - E + $\Delta$ / kg m$^{-2}$ hr$^{-1}$",
+			ylabel=L"$-\nabla$ / kg m$^{-2}$ hr$^{-1}$"
+		)
+
+	end
+
+	f1.colorbar(c,label="Number of Observations")
+	f1.savefig(plotsdir("04a-wrfqbudget.png"),transparent=false,dpi=400)
+	load(plotsdir("04a-wrfqbudget.png"))
 end
 
-# ╔═╡ eb7a010b-5e93-48c5-8e0a-698fbd70cda4
+# ╔═╡ 7fdb55f7-2888-4937-8409-88331c8c53c4
 begin
-	flights = loadflightpaths()
-	md"Loading flight path data ..."
+	pplt.close()
+	f2,a2 = pplt.subplots(nrows=3,ncols=4,axwidth=1.2,wspace=1.5,hspace=1.5)
+
+	xbin07 = -1:0.1:5
+	ybin07 = -1:0.1:5
+
+	for istn = 1 : 12
+
+		wgts = zeros(length(xbin07)-1,length(ybin07)-1)
+		stnstr = @sprintf("%02d",istn)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)",path=srcdir())
+			
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=7)
+		e  = smooth(ds["E"][:],days=7)
+		∇  = smooth(ds["∇"][:],days=7) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=7)
+		close(ds)
+
+		h = fit(Histogram,(p,-∇),(xbin07,ybin07))
+		wgts[:,:] += h.weights
+
+		for ibox = 1 : 4
+
+			geo = GeoRegion("OTREC_wrf_stn$(stnstr)_box$ibox",path=srcdir())
+
+			ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+			p  = smooth(ds["P"][:],days=7)
+			e  = smooth(ds["E"][:],days=7)
+			∇  = smooth(ds["∇"][:],days=7) * 3600
+			Δ  = smooth(ds["ΔWVP"][:],days=7)
+			close(ds)
+
+			h = fit(Histogram,(p,-∇),(xbin07,ybin07))
+			wgts[:,:] += h.weights
+
+		end
+
+		global c2 = a2[istn].pcolormesh(xbin07,ybin07,wgts',levels=lvls,extend="both")
+		a2[istn].plot([-2,5],[-2,5],c="k",lw=1,linestyle="--")
+		a2[istn].plot([-2,5],[-2,5].+0.2*sqrt(2),c="grey",lw=1,linestyle=":")
+		a2[istn].plot([-2,5],[-2,5].-0.2*sqrt(2),c="grey",lw=1,linestyle=":")
+		a2[istn].format(
+			suptitle="(b) Moisture Budget Balancing (7 Days Smoothing)",
+			ultitle=infody[istn,1],
+			xlim=(-1,4),#xlocator=-20:10:70,
+			ylim=(-1,4),#ylocator=-20:10:70,
+			xlabel=L"P / kg m$^{-2}$ hr$^{-1}$",
+			ylabel=L"$-\nabla$ / kg m$^{-2}$ hr$^{-1}$"
+		)
+
+	end
+
+	f2.colorbar(c2,label="Number of Observations")
+	f2.savefig(plotsdir("04a-wrfqbudget-smooth07.png"),transparent=false,dpi=400)
+	load(plotsdir("04a-wrfqbudget-smooth07.png"))
 end
 
-# ╔═╡ 60d38ccd-6538-426f-985e-9d782834dce9
+# ╔═╡ f4ce33b4-a0f5-4db1-8b0c-85b6929e7417
 begin
-	xinset = deepcopy(x); xinset[(x.>285).|(x.<270).|(y.>15).|(y.<0)].=NaN
-	yinset = deepcopy(y); yinset[(x.>285).|(x.<270).|(y.>15).|(y.<0)].=NaN
-	md"Filtering out coastlines outside domain ..."
+	pplt.close()
+	f3,a3 = pplt.subplots(nrows=3,ncols=4,axwidth=1.2,wspace=1.5,hspace=1.5)
+
+	xbin30 = -1:0.05:5
+	ybin30 = -1:0.05:5
+
+	for istn = 1 : 12
+
+		wgts = zeros(length(xbin30)-1,length(ybin30)-1)
+		stnstr = @sprintf("%02d",istn)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)",path=srcdir())
+			
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=30)
+		e  = smooth(ds["E"][:],days=30)
+		∇  = smooth(ds["∇"][:],days=30) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=30)
+		close(ds)
+
+		h = fit(Histogram,(p,-∇),(xbin30,ybin30))
+		wgts[:,:] += h.weights
+
+		for ibox = 1 : 4
+
+			geo = GeoRegion("OTREC_wrf_stn$(stnstr)_box$ibox",path=srcdir())
+
+			ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+			p  = smooth(ds["P"][:],days=30)
+			e  = smooth(ds["E"][:],days=30)
+			∇  = smooth(ds["∇"][:],days=30) * 3600
+			Δ  = smooth(ds["ΔWVP"][:],days=30)
+			close(ds)
+
+			h = fit(Histogram,(p,-∇),(xbin30,ybin30))
+			wgts[:,:] += h.weights
+
+		end
+
+		global c3 = a3[istn].pcolormesh(xbin30,ybin30,wgts',levels=lvls,extend="both")
+		a3[istn].plot([-200,300],[-200,300],c="k",lw=1,linestyle="--")
+		a3[istn].plot([-200,300],[-200,300].+0.1*sqrt(2),c="grey",lw=1,linestyle=":")
+		a3[istn].plot([-200,300],[-200,300].-0.1*sqrt(2),c="grey",lw=1,linestyle=":")
+		a3[istn].format(
+			suptitle="Moisture Budget Balancing (30 Days Smoothing)",
+			xlim=(-0.5,3),#xlocator=-20:10:70,
+			ylim=(-0.5,3),#ylocator=-20:10:70,
+			xlabel=L"P / kg m$^{-2}$ hr$^{-1}$",
+			ylabel=L"$-\nabla$ / kg m$^{-2}$ hr$^{-1}$"
+		)
+
+	end
+
+	f3.colorbar(c3)
+	f3.savefig(plotsdir("04a-wrfqbudget-smooth30.png"),transparent=false,dpi=400)
+	load(plotsdir("04a-wrfqbudget-smooth30.png"))
 end
 
-# ╔═╡ c16d89d9-d7ba-4b79-aa7c-8570467333e0
-geo = GeoRegion("OTREC")
-
-# ╔═╡ 5d6c3cd6-e406-461d-a226-20022060398d
-lsd = getLandSea(geo,path=datadir(),returnlsd=true)
-
-# ╔═╡ bc8992d5-fea2-405d-bf6d-9e83c0abf768
-tgeo = RectRegion("TMP","OTREC","TMP",[7,3,285,281],savegeo=false)
-
-# ╔═╡ 982993ab-3437-4e05-bb8c-a78834d4c39d
-ggrd = RegionGrid(tgeo,lsd.lon,lsd.lat)
-
-# ╔═╡ ff2ded99-0764-47d5-a2cc-36d5b56acbc2
+# ╔═╡ 55121124-de02-4b81-86e0-08ba1b8db1dc
 begin
-	z = extractGrid(lsd.z,ggrd)
-	md"Extracting data for temporary region"
+	Δmat = zeros(12,5)
+	for istn = 1 : 12
+	
+		wgts = zeros(length(xbin)-1,length(ybin)-1)
+		stnstr = @sprintf("%02d",istn)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)",path=srcdir())
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=7)
+		e  = smooth(ds["E"][:],days=7)
+		∇  = smooth(ds["∇"][:],days=7) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=7)
+		close(ds)
+	
+		r = sqrt.((p.-e.+Δ.+∇).^2)/2
+		Δmat[istn,1] = mean(r[.!isnan.(r)])
+		
+	end
+	for istn = 1 : 12, ibox = 1 : 4
+	
+		wgts = zeros(length(xbin)-1,length(ybin)-1)
+		stnstr = @sprintf("%02d",istn)
+		boxstr = @sprintf("%d",ibox)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)_box$(boxstr)",path=srcdir())
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-∇decompose-20190801_20201231.nc"))
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=7)
+		e  = smooth(ds["E"][:],days=7)
+		∇  = smooth(ds["∇"][:],days=7) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=7)
+		close(ds)
+	
+		r = sqrt.((p.-e.+Δ.+∇).^2)/2
+		Δmat[istn,ibox+1] = mean(r[.!isnan.(r)])
+		
+	end
+	open(datadir("wrf3","qbudgetdiff-smooth07.txt"),"w") do io
+		writedlm(io,Δmat)
+	end
 end
 
-# ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
-md"
-### C. Plotting Regions of Interest
-"
-
-# ╔═╡ 6dfab570-8d7b-47e2-9971-69fde82cbe70
+# ╔═╡ 617614bb-c457-418b-a31d-2a27ccb0199d
 begin
-	blon_02,blat_02 = coordGeoRegion(GeoRegion("OTREC_STN02"))
-	blon_03,blat_03 = coordGeoRegion(GeoRegion("OTREC_STN03"))
-	blon_04,blat_04 = coordGeoRegion(GeoRegion("OTREC_STN04"))
-	blon_02_01,blat_02_01 = coordGeoRegion(GeoRegion("OTREC_STN02_01"))
-	blon_03_01,blat_03_01 = coordGeoRegion(GeoRegion("OTREC_STN03_01"))
-	blon_04_01,blat_04_01 = coordGeoRegion(GeoRegion("OTREC_STN04_01"))
-	blon_02_04,blat_02_04 = coordGeoRegion(GeoRegion("OTREC_STN02_04"))
-	blon_03_04,blat_03_04 = coordGeoRegion(GeoRegion("OTREC_STN03_04"))
-	blon_04_04,blat_04_04 = coordGeoRegion(GeoRegion("OTREC_STN04_04"))
-	md"Loading GeoRegion bound coordinates ..."
+	Δmat .= 0
+	for istn = 1 : 12
+	
+		wgts = zeros(length(xbin)-1,length(ybin)-1)
+		stnstr = @sprintf("%02d",istn)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)",path=srcdir())
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=30)
+		e  = smooth(ds["E"][:],days=30)
+		∇  = smooth(ds["∇"][:],days=30) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=30)
+		close(ds)
+	
+		r = sqrt.((p.-e.+Δ.+∇).^2)/2
+		Δmat[istn,1] = mean(r[.!isnan.(r)])
+		
+	end
+	for istn = 1 : 12, ibox = 1 : 4
+	
+		wgts = zeros(length(xbin)-1,length(ybin)-1)
+		stnstr = @sprintf("%02d",istn)
+		boxstr = @sprintf("%d",ibox)
+		geo    = GeoRegion("OTREC_wrf_stn$(stnstr)_box$(boxstr)",path=srcdir())
+		ds  = NCDataset(datadir("wrf3","processed","$(geo.ID)-QBUDGET-20190801_20201231.nc"))
+		p  = smooth(ds["P"][:],days=30)
+		e  = smooth(ds["E"][:],days=30)
+		∇  = smooth(ds["∇"][:],days=30) * 3600
+		Δ  = smooth(ds["ΔWVP"][:],days=30)
+		close(ds)
+	
+		r = sqrt.((p.-e.+Δ.+∇).^2)/2
+		Δmat[istn,ibox+1] = mean(r[.!isnan.(r)])
+		
+	end
+	open(datadir("wrf3","qbudgetdiff-smooth30.txt"),"w") do io
+		writedlm(io,Δmat)
+	end
 end
 
-# ╔═╡ 940fd96a-98cf-441e-bbba-20ee1250551d
-clrs = pplt.get_colors("default")
-
-# ╔═╡ d7755534-3565-4011-b6e3-e131991008db
-begin
-	pplt.close(); fig,axs = pplt.subplots(aspect=1,axwidth=3)
-	textdict = Dict("fc"=>"grey3","ec"=>"none","alpha"=>0.6)
-
-	c = axs[1].pcolormesh(
-		ggrd.lon,ggrd.lat,z'/1000,
-		levels=-4.5:0.5:4.5,cmap="delta",extend="both"
-	)
-	axs[1].contour(ggrd.lon,ggrd.lat,z'/1000,levels=[0],color="k",lw=1)
-	axs[1].scatter(infody[:,2],infody[:,3],c="r",zorder=5)
-	axs[1].plot(blon_02,blat_02,c=clrs[1])
-	axs[1].plot(blon_03,blat_03,c=clrs[2])
-	axs[1].plot(blon_04,blat_04,c=clrs[3])
-	axs[1].plot(blon_02_01,blat_02_01,c=clrs[1],linestyle=":")
-	axs[1].plot(blon_03_01,blat_03_01,c=clrs[2],linestyle=":")
-	axs[1].plot(blon_04_01,blat_04_01,c=clrs[3],linestyle=":")
-	axs[1].plot(blon_02_04,blat_02_04,c=clrs[1],linestyle=":")
-	axs[1].plot(blon_03_04,blat_03_04,c=clrs[2],linestyle=":")
-	axs[1].plot(blon_04_04,blat_04_04,c=clrs[3],linestyle=":")
-	axs[1].text(281.4,5.9,"Bahía Solano",c="k",size=8,bbox=textdict)
-	axs[1].text(283.6,5.4,"Quibdó",c="k",size=8,bbox=textdict)
-	axs[1].text(283.3,3.5,"Buenaventura",c="k",size=8,bbox=textdict)
-	axs[1].format(xlim=(281,285),ylim=(3,7))
-
-	fig.colorbar(c,label="Topographic Height/ km")
-	fig.savefig(projectdir("figures","figS4-georegionbreakdown.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS4-georegionbreakdown.png"))
-end
+# ╔═╡ 5696050b-6f56-4d95-b315-ebaf1b4e4f55
+Δmat .> 0.05
 
 # ╔═╡ Cell order:
-# ╟─fa2f8740-f813-11ec-00e1-112e2dfacda7
-# ╟─1d7446ba-f464-44df-89e2-ae2a5726e849
-# ╟─ab294fae-101f-4587-a2f4-7d72254dd421
-# ╟─ccdf14a6-b200-42db-8455-0ea4eeb5ae2d
-# ╟─a6ab92dd-1fae-4a04-b8f3-6782ea67c60b
-# ╟─189e1048-c92d-457e-a30e-f4e523b80afc
-# ╟─32c650df-ccd2-4adf-a3b7-56611fff1b46
-# ╟─eb7a010b-5e93-48c5-8e0a-698fbd70cda4
-# ╟─60d38ccd-6538-426f-985e-9d782834dce9
-# ╟─c16d89d9-d7ba-4b79-aa7c-8570467333e0
-# ╟─5d6c3cd6-e406-461d-a226-20022060398d
-# ╟─bc8992d5-fea2-405d-bf6d-9e83c0abf768
-# ╟─982993ab-3437-4e05-bb8c-a78834d4c39d
-# ╟─ff2ded99-0764-47d5-a2cc-36d5b56acbc2
-# ╟─1a643e58-39c1-4c6b-b340-978056871b6b
-# ╟─6dfab570-8d7b-47e2-9971-69fde82cbe70
-# ╠═940fd96a-98cf-441e-bbba-20ee1250551d
-# ╟─d7755534-3565-4011-b6e3-e131991008db
+# ╟─2e7c33da-f8b5-11ec-08f2-2581af96575f
+# ╟─e32a00ee-5f32-47a1-a983-91fb77bc5d18
+# ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
+# ╟─6ecf692f-a83b-4a97-abe0-5b9b0dd768c2
+# ╠═afdf0526-f170-4ede-a4de-30cd6a12aefe
+# ╟─5045b20b-925f-46a5-a6f6-d8cf20e2d79e
+# ╟─7fdb55f7-2888-4937-8409-88331c8c53c4
+# ╟─f4ce33b4-a0f5-4db1-8b0c-85b6929e7417
+# ╟─55121124-de02-4b81-86e0-08ba1b8db1dc
+# ╟─617614bb-c457-418b-a31d-2a27ccb0199d
+# ╠═5696050b-6f56-4d95-b315-ebaf1b4e4f55

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -15,9 +15,6 @@ end
 begin
 	@quickactivate "2024GLConvIso"
 	using Dates
-	using DelimitedFiles
-	using ERA5Reanalysis
-	using NASAPrecipitation
 	using NCDatasets
 	using Printf
 	using Statistics
@@ -38,120 +35,93 @@ md"
 In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
 "
 
-# ╔═╡ 4579f773-e2b4-4b1f-a8c1-485341d451fc
+# ╔═╡ 5b392d8a-d68b-44df-ab57-d0e81aedd668
+md"
+### A. Loading the Processed Data
+"
+
+# ╔═╡ cceac73b-b7d9-4418-b145-d45d384b61b8
 begin
-	coast = readdlm(datadir("coast.cst"),comments=true,comment_char='#')
-	x = coast[:,1]
-	y = coast[:,2]
-	md"Loading coastlines data ..."
+	ds = NCDataset(datadir("processed.nc"))
+	dtvec = ds["time"][:]
+	lon   = ds["longitude"][:]
+	lat   = ds["latitude"][:]
+	prcp  = ds["prcp"][:,:] 
+	prcpg = ds["prcpg"][:,:] 
+	prcps = ds["prcps"][:,:] 
+	δ18Oμ = ds["δ18Oμ"][:,:] 
+	δ18Oσ = ds["δ18Oσ"][:,:] 
+	δ2Hμ  = ds["δ2Hμ"][:,:] 
+	δ2Hσ  = ds["δ2Hσ"][:,:] 
+	close(ds)
+	md"Loading processed station and GPM rainfall and isotopic data ..."
 end
 
-# ╔═╡ 7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
-npd = IMERGFinalHH(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
-
-# ╔═╡ c0799dcd-7c88-4f75-ac19-76b615ff4454
-e5ds = ERA5Hourly(start=Date(2019,8,1),stop=Date(2020,12,31),path=datadir())
-
-# ╔═╡ 538d96e5-ed7b-477a-8f3a-959a9b978ec5
-geo = GeoRegion("OTREC_wrf_d02",path=srcdir())
-
-# ╔═╡ 9a455f45-592c-43ab-a71c-d1de27bf8552
-egeo = ERA5Region(geo)
-
-# ╔═╡ a822f787-214a-4ef3-ba54-b899e890aeff
-nlsd = getLandSea(npd,geo)
-
-# ╔═╡ 5260b50e-7436-4afa-96b4-3e9ac1d26229
-elsd = getLandSea(e5ds,egeo)
-
-# ╔═╡ 0e89ce44-1788-4744-8170-cccb4aecd220
+# ╔═╡ 0374f823-90a0-4dc6-be0e-9449a7fa7202
 begin
-	prcp  = zeros(length(nlsd.lon),length(nlsd.lat))
-	dtvec = npd.start : Day(1) : npd.stop
-	for idt in dtvec
-		ids = read(npd,geo,idt)
-		prcp[:,:] += mean(ids["precipitation"][:,:,:],dims=3) * 86400
-		close(ids)
+	arr = [[1,1,1,2,3],[4,4,4,5,6],[7,7,7,8,9]]
+	pplt.close(); fig,axs = pplt.subplots(arr,aspect=3,axwidth=3,sharex=0,sharey=0,wspace=[0,0,1,8],hspace=[1,1])
+
+	for istn in 1 
+		axs[1].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[1].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[2].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[3].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
 	end
-	prcp ./= length(dtvec)
-end
 
-# ╔═╡ d982d95e-e9d8-4e5b-a706-0589a4eb4df8
-begin
-	wnds = NCDataset(datadir("wrf","regridded","gpm-RAINNC-20190801_20201231.nc"))
-	wprcp = dropdims(mean(wnds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
-	close(wnds)
-end
-
-# ╔═╡ 5c9367e4-35a7-4e5a-83e6-ff70a108e340
-begin
-	eprcp = zeros(length(elsd.lon),length(elsd.lat))
-	edtvec = e5ds.start : Month(1) : e5ds.stop
-	evar = SingleVariable("tp")
-	for idt in edtvec
-		ids = read(e5ds,evar,egeo,idt)
-		eprcp[:,:] += sum(ids[evar.ID][:,:,:],dims=3) * 1000
-		close(ids)
+	for istn in 2 : 4
+		axs[4].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[4].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[5].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[6].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
 	end
-	eprcp ./= length(dtvec)
-end
 
-# ╔═╡ 6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-begin
-	weds = NCDataset(datadir("wrf","regridded","era-RAINNC-20190801_20201231.nc"))
-	weprcp = dropdims(mean(weds["RAINNC"][:,:,1:(end-24)],dims=3),dims=3)*24
-	close(weds)
-end
+	for istn in 5 : 12
+		axs[7].scatter(dtvec,prcpg[:,istn],s=1,c="b")
+		axs[7].scatter(dtvec,prcps[:,istn],s=1,c="r")
+		axs[8].scatter(prcps[:,istn],prcpg[:,istn],s=1,c="k")
+		axs[9].scatter(δ18Oμ[:,istn],δ2Hμ[:,istn],s=1,c="k")
+	end
 
-# ╔═╡ b74efe40-6288-4b27-b757-5d0771f2552e
-begin
-	asp = (geo.N-geo.S+2)/(geo.E-geo.W+2)
-	pplt.close(); fig,axs = pplt.subplots(nrows=2,ncols=3,axwidth=1.5,aspect=asp)
-	
-	c1 = axs[1].pcolormesh(nlsd.lon,nlsd.lat,prcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[2].pcolormesh(nlsd.lon,nlsd.lat,wprcp',levels=2:2:30,cmap="Blues",extend="both")
-	c2 = axs[3].pcolormesh(nlsd.lon,nlsd.lat,(wprcp.-prcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
-	
-	axs[4].pcolormesh(elsd.lon,elsd.lat,eprcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[5].pcolormesh(elsd.lon,elsd.lat,weprcp',levels=2:2:30,cmap="Blues",extend="both")
-	axs[6].pcolormesh(elsd.lon,elsd.lat,(weprcp.-eprcp)',levels=vcat(-5:-1,-0.5,0.5,1:5)*4,cmap="drywet",extend="both")
+	for ii in [1,4,7]
+		axs[ii].format(ylim=(-10,210),xlim=(Date(2019,1),Date(2021,12)))
+	end
 
-	axs[1].format(ultitle="IMERGv7")
-	axs[2].format(ultitle="Regridded WRF")
-	axs[3].format(ultitle="WRF - IMERGv7")
-	axs[4].format(ultitle="ERA5")
-	axs[5].format(ultitle="Regridded WRF")
-	axs[6].format(ultitle="WRF - ERA5")
+	for ii in [1,2,3,4,5,6]
+		axs[ii].format(xticklabels=[])
+	end
+
+	for ii in [2,5,8]
+		axs[ii].format(xlim=(-10,210),ylim=(-10,210),ytickloc="r")
+	end
+
+	for ii in [3,6,9]
+		axs[ii].format(xlim=(-20,2),ylim=(-150,25),ytickloc="r")
+	end
 
 	for ax in axs
-		ax.plot(x,y,lw=0.5,c="k")
-		ax.format(
-			xlim=(geo.W-1,geo.E+1),xlabel=L"Longitude / $\degree$",
-			ylim=(geo.S-1,geo.N+1),ylabel=L"Latitude / $\degree$",
-			suptitle = "(a) Mean Rainfall Rate (2019 Aug - 2020 Dec)"
-		)
+		ax.format(xminorlocator=[])
 	end
 
-	axs[3].colorbar(c1,label=L"$\mu$ / mm day$^{-1}$")
-	axs[6].colorbar(c2,label=L"$\Delta$ / mm day$^{-1}$")
+	axs[1].format(ltitle="(a) Time-Series", ultitle="(i) San Andres",)
+	axs[2].format(ltitle="(b) Station vs GPM")
+	axs[3].format(ltitle=L"(c) $\delta^2$H vs $\delta^{18}$O")
+	axs[4].format(ultitle="(ii) Colombia Daily Stations",ylabel=L"Rain Rate / mm day$^{-1}$")
+	axs[5].format(ylabel=L"GPM Rainfall / mm day$^{-1}$")
+	axs[6].format(ylabel=L"$\delta^2$H")
+	axs[7].format(ultitle="(iii) Costa Rica Stations")
+	axs[8].format(xlabel=L"Station Rainfall / mm day$^{-1}$")
+	axs[9].format(xlabel=L"$\delta^{18}$O")
+		
 	
-	fig.savefig(projectdir("figures","figS2-imergvswrfvsera.png"),transparent=false,dpi=400)
-	load(projectdir("figures","figS2-imergvswrfvsera.png"))
+	fig.savefig(projectdir("figures","figS2-stationvsgpm.png"),transparent=false,dpi=400)
+	load(projectdir("figures","figS2-stationvsgpm.png"))
 end
 
 # ╔═╡ Cell order:
 # ╟─a8431d46-46fe-11ec-2b8d-e39caffdabec
 # ╟─b3bc56eb-43a7-4736-bd66-704529911d60
 # ╟─9071763e-f6ad-4468-ae48-369307a85263
-# ╟─4579f773-e2b4-4b1f-a8c1-485341d451fc
-# ╠═7592bde2-b5dc-4b1e-8d51-4a9c33ba25d3
-# ╠═c0799dcd-7c88-4f75-ac19-76b615ff4454
-# ╠═538d96e5-ed7b-477a-8f3a-959a9b978ec5
-# ╠═9a455f45-592c-43ab-a71c-d1de27bf8552
-# ╟─a822f787-214a-4ef3-ba54-b899e890aeff
-# ╟─5260b50e-7436-4afa-96b4-3e9ac1d26229
-# ╟─0e89ce44-1788-4744-8170-cccb4aecd220
-# ╠═d982d95e-e9d8-4e5b-a706-0589a4eb4df8
-# ╟─5c9367e4-35a7-4e5a-83e6-ff70a108e340
-# ╠═6c91263c-a1e2-41f6-83f1-e69e55ef0c38
-# ╠═b74efe40-6288-4b27-b757-5d0771f2552e
+# ╟─5b392d8a-d68b-44df-ab57-d0e81aedd668
+# ╟─cceac73b-b7d9-4418-b145-d45d384b61b8
+# ╠═0374f823-90a0-4dc6-be0e-9449a7fa7202

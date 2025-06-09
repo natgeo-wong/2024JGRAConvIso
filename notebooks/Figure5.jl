@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.10
 
 using Markdown
 using InteractiveUtils
@@ -31,7 +31,7 @@ end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# 03b. Station W-Weighted Pressure, $\sigma$
+# 05. Depletion in WRF for Idealized Regions
 "
 
 # ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -141,12 +141,12 @@ function binning!(
 	nt = length(prcp)
 
 	for it = 1 : nt
-		if (prcp[it]+advc[it]-evap[it]>2.5) && !isnan(pwgt[it])
-			rind = argmin(abs.(prcp[it]+advc[it]-evap[it].-rpnt))
+		if (prcp[it]>2.5) && !isnan(pwgt[it])
+			rind = argmin(abs.(prcp[it].-rpnt))
 			pind = argmin(abs.(pwgt[it].-ppnt))
 			numstn[rind,pind] += 1
-			binstn[rind,pind] += hvyp[it] + hvya[it] - hvye[it]
-			prcstn[rind,pind] += prcp[it] + advc[it] - evap[it]
+			binstn[rind,pind] += hvyp[it]
+			prcstn[rind,pind] += prcp[it]
 		end
 	end
 
@@ -237,7 +237,7 @@ function axesformat!(axesnum)
 	for ax in axesnum
 		ax.format(
 			ylim=(1000,0),xlim=(0,100),xlocator=0:100:200,ylocator=0:250:1000,
-			xlabel=L"$P - E + u\cdot\nabla q$ / kg m$^{-2}$ day$^{-1}$",
+			xlabel=L"$P$ / kg m$^{-2}$ day$^{-1}$",
 			leftlabels=["ITCZ","CrossITCZ","PAC2ATL"]
 		)
 	end
@@ -351,21 +351,21 @@ begin
 	)
 
 	c2_1,c2_2 = 
-	plotbin!(a2,1,rbin,pbin,abin,aprc,anum,-20:-8,returncinfo=true)
-	plotbin!(a2,2,rbin,pbin,bbin,bprc,bnum,-20:-8)
-	plotbin!(a2,3,rbin,pbin,cbin,cprc,cnum,-20:-8)
-	plotbin!(a2,4,rbin,pbin,dbin,dprc,dnum,-20:-8)
-	plotbin!(a2,5,rbin,pbin,ebin,eprc,enum,-20:-8)
-	plotbin!(a2,6,rbin,pbin,fbin,fprc,fnum,-20:-8)
-	plotbin!(a2,7,rbin,pbin,gbin,gprc,gnum,-20:-8)
-	plotbin!(a2,8,rbin,pbin,hbin,hprc,hnum,-20:-8)
-	plotbin!(a2,9,rbin,pbin,ibin,iprc,inum,-20:-8)
-	plotbin!(a2,10,rbin,pbin,jbin,jprc,jnum,-20:-8)
-	plotbin!(a2,11,rbin,pbin,kbin,kprc,knum,-20:-8)
-	plotbin!(a2,12,rbin,pbin,lbin,lprc,lnum,-20:-8)
-	plotbin!(a2,13,rbin,pbin,mbin,mprc,mnum,-20:-8)
-	plotbin!(a2,14,rbin,pbin,nbin,nprc,nnum,-20:-8)
-	plotbin!(a2,15,rbin,pbin,obin,oprc,onum,-20:-8)
+	plotbin!(a2,1, rbin,pbin,abin,aprc,anum,-12:0.5:-6.5,returncinfo=true)
+	plotbin!(a2,2, rbin,pbin,bbin,bprc,bnum,-12:0.5:-6.5)
+	plotbin!(a2,3, rbin,pbin,cbin,cprc,cnum,-12:0.5:-6.5)
+	plotbin!(a2,4, rbin,pbin,dbin,dprc,dnum,-12:0.5:-6.5)
+	plotbin!(a2,5, rbin,pbin,ebin,eprc,enum,-12:0.5:-6.5)
+	plotbin!(a2,6, rbin,pbin,fbin,fprc,fnum,-12:0.5:-6.5)
+	plotbin!(a2,7, rbin,pbin,gbin,gprc,gnum,-12:0.5:-6.5)
+	plotbin!(a2,8, rbin,pbin,hbin,hprc,hnum,-12:0.5:-6.5)
+	plotbin!(a2,9, rbin,pbin,ibin,iprc,inum,-12:0.5:-6.5)
+	plotbin!(a2,10,rbin,pbin,jbin,jprc,jnum,-12:0.5:-6.5)
+	plotbin!(a2,11,rbin,pbin,kbin,kprc,knum,-12:0.5:-6.5)
+	plotbin!(a2,12,rbin,pbin,lbin,lprc,lnum,-12:0.5:-6.5)
+	plotbin!(a2,13,rbin,pbin,mbin,mprc,mnum,-12:0.5:-6.5)
+	plotbin!(a2,14,rbin,pbin,nbin,nprc,nnum,-12:0.5:-6.5)
+	plotbin!(a2,15,rbin,pbin,obin,oprc,onum,-12:0.5:-6.5)
 
 	axesformat!(a2)
 	a2[1].format(suptitle="7-Day WRF Moving Average")
@@ -373,8 +373,8 @@ begin
 	f2.colorbar(c2_1,row=[1],locator=-20:4:-8,label=L"$\delta^{18}$O / $\perthousand$",minorlocator=-150:5:-45)
 	f2.colorbar(c2_2,row=[2],locator=0:10:50,label="Number of Observations")
 	
-	f2.savefig(projectdir("figures","fig5-idealadv.png"),transparent=false,dpi=400)
-	load(projectdir("figures","fig5-idealadv.png"))
+	f2.savefig(projectdir("figures","fig5-idealdeplete.png"),transparent=false,dpi=400)
+	load(projectdir("figures","fig5-idealdeplete.png"))
 end
 
 # ╔═╡ Cell order:
@@ -390,4 +390,4 @@ end
 # ╟─6fc8d69a-81d1-47c4-8609-8ec7914bc935
 # ╟─987ab0fb-a376-4470-bcad-0e5681c6ca84
 # ╟─2fd946e2-bf3e-406f-9a19-5aa72b5d1640
-# ╠═c57ae725-3056-481c-a004-a916192744be
+# ╟─c57ae725-3056-481c-a004-a916192744be
