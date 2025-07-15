@@ -186,12 +186,12 @@ begin
 	ix.plot(blon3.+360,blat3,c="orange",linestyle=":")
 	ix.plot(blon4.+360,blat4,c="orange",linestyle=":")
 
-	ix.text(275.2,10.15,"EEFMB",c="k",size=7,bbox=textdict)
+	ix.text(275.2,10.15,"EEAFMB",c="k",size=7,bbox=textdict)
 	ix.text(275.4,9.65,"CGFI",c="k",size=7,bbox=textdict)
 	ix.text(276.1,9.64,"AMDQ",c="k",size=7,bbox=textdict)
 	ix.text(276.1,8.3,"OSA",c="k",size=7,bbox=textdict)
 	ix.text(276.2,10.22,"Bataan",c="k",size=7,bbox=textdict)
-	ix.text(277,10.1,"Limon",c="k",size=7,bbox=textdict)
+	ix.text(277,10.1,"LIMO",c="k",size=7,bbox=textdict)
 	ix.text(277,9.45,"Cahuita",c="k",size=7,bbox=textdict)
 	ix.text(275.1,8.2,"(a)",c="k",size=9)
 	
