@@ -95,19 +95,16 @@ lsd_sml = getLandSea(etpd,geo_sml)
 # ╔═╡ 76e35851-71a0-4b89-98bb-9a82bf34bd34
 lsd_big = getLandSea(etpd,geo_big)
 
-# ╔═╡ 7b4eaccc-7f7e-4c82-9ec5-f82834c75098
-lon_d01,lat_d01 = coordinates(geo_d01);
-
-# ╔═╡ dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
-lon_d02,lat_d02 = coordinates(geo_d02);
-
 # ╔═╡ c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
 begin
+	lon_d01,lat_d01 = coordinates(geo_d01);
+	lon_d02,lat_d02 = coordinates(geo_d02);
 	slon,slat = coordinates(GeoRegion("OTREC_wrf_stn08",path=srcdir()))
 	blon1,blat1 = coordinates(GeoRegion("OTREC_wrf_stn08_box1",path=srcdir()))
 	blon2,blat2 = coordinates(GeoRegion("OTREC_wrf_stn08_box2",path=srcdir()))
 	blon3,blat3 = coordinates(GeoRegion("OTREC_wrf_stn08_box3",path=srcdir()))
 	blon4,blat4 = coordinates(GeoRegion("OTREC_wrf_stn08_box4",path=srcdir()))
+	md"Loading coordinates for the different GeoRegions of interest ..."
 end
 
 # ╔═╡ 1a643e58-39c1-4c6b-b340-978056871b6b
@@ -245,9 +242,7 @@ end
 # ╟─ee60cad1-0863-4974-9690-087d0c6dc06e
 # ╟─1ae33598-e283-49f7-bc8d-274b33ab12a5
 # ╟─5d6c3cd6-e406-461d-a226-20022060398d
-# ╠═76e35851-71a0-4b89-98bb-9a82bf34bd34
-# ╠═7b4eaccc-7f7e-4c82-9ec5-f82834c75098
-# ╠═dc660494-dc7b-41bc-8ca8-ae68c2bfd94b
-# ╠═c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
+# ╟─76e35851-71a0-4b89-98bb-9a82bf34bd34
+# ╟─c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
 # ╟─d7755534-3565-4011-b6e3-e131991008db
