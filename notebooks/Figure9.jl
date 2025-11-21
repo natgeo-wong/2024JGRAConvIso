@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.10
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -173,7 +173,7 @@ end
 
 # ╔═╡ 30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
 begin
-	pplt.close(); fig,axs = pplt.subplots(nrows=6,ncols=3,aspect=1.5,axwidth=1.5,sharey=0,hspace=[1,1,2,1,1])
+	pplt.close(); fig,axs = pplt.subplots(nrows=6,ncols=3,aspect=1.5,axwidth=1.5,sharey=0,hspace=[1,1,3,1,1])
 
 	c1 =
 	plotcdqdp(axs,1,nID=25,pmin=2.5,pmax=15,days=7,cinfo=true,prfx="ITCZ")
@@ -191,12 +191,12 @@ begin
 	axs[3].format(title="PAC2ATL",xlabel="Region Number")
 	axs[6].format(suptitle=L"Coefficients for Linear Fit on 7-day $\delta^{18}$O")
 
-	axs[4].format(ylabel=L"$c_0 - 1$ / $\perthousand$")
-	axs[13].format(ylabel=L"$c_1$ / 10$^{-1}$ $\perthousand$ hPa$^{-1}$")
+	axs[4].format(ylabel=L"(a) $c_0 - 1$ / $\perthousand$")
+	axs[13].format(ylabel=L"(b) $c_1$ / 10$^{-1}$ $\perthousand$ hPa$^{-1}$")
 	
 	for ii = 1 : 9
 		axs[ii].format(ylim=(-21,1),leftlabels=["2.5 < P < 15","15 < P < 30","P > 30","2.5 < P < 15","15 < P < 30","P > 30"])
-		axs[ii+9].format(ylim=(0,1))
+		axs[ii+9].format(ylim=(-0.05,1.05),ylocator=0:0.5:1)
 	end
 
 	for ii = [2,3,5,6,8,9,11,12,14,15,17,18]
@@ -218,4 +218,4 @@ end
 # ╟─10d1c691-00a7-47de-a8ca-8debcd3346c1
 # ╟─d8558ea0-a753-4693-8dbe-2dc9ea86b5a0
 # ╟─c793412d-71b6-4f2c-a9f4-15da6ec039e4
-# ╠═30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
+# ╟─30424aa0-cc38-4f50-8eb6-efd4f6c4c9c4
