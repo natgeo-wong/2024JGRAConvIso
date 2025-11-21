@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -21,7 +21,7 @@ begin
 	using PyCall, LaTeXStrings
 	using PNGFiles, ImageShow
 
-	pplt = pyimport("proplot")
+	pplt = pyimport("ultraplot")
 
 	include(srcdir("common.jl"))
 	
@@ -50,7 +50,7 @@ md"
 e5ds = ERA5Dummy(path=datadir())
 
 # ╔═╡ cb7c6118-e25b-462a-84a5-751ea0682b52
-elsd = getLandSea(e5ds,ERA5Region("TRP"))
+elsd = getLandSea(e5ds,ERA5Region("TRP",path=srcdir()))
 
 # ╔═╡ b68195cb-cf2e-4ce4-9999-1d71eacedf6a
 md"

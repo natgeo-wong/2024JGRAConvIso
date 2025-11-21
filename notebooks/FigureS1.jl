@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.10
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -30,7 +30,7 @@ end
 
 # ╔═╡ 2e7c33da-f8b5-11ec-08f2-2581af96575f
 md"
-# 03b. Station W-Weighted Pressure, $\sigma$
+# Figure S1. Station W-Weighted Pressure, $\sigma$
 "
 
 # ╔═╡ 59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -179,7 +179,7 @@ function axesformat!(axes)
 	for ax in axes
 		ax.format(
 			xlim=(-0.2,1.2),ylim=(1000,100),ylabel="Pressure / hPa",
-			xlabel=L"$\partial_pq_h/\partial_pq)$ / $\perthousand$",
+			xlabel=L"$\partial_pq_h/\partial_pq$ / Ratio of VSMOW",
 			suptitle="7-Day Moving Average",
 			rightlabels=["ITCZ","CrossITCZ","PAC2ATL"]
 		)
@@ -236,7 +236,7 @@ begin
 end
 
 # ╔═╡ Cell order:
-# ╟─2e7c33da-f8b5-11ec-08f2-2581af96575f
+# ╠═2e7c33da-f8b5-11ec-08f2-2581af96575f
 # ╟─e32a00ee-5f32-47a1-a983-91fb77bc5d18
 # ╟─bec4e6f2-c2ea-421e-8c57-33e1ef90aa21
 # ╟─59c930cd-5b7f-4047-8660-615148d1bd9f
@@ -245,5 +245,5 @@ end
 # ╟─7e114c52-4f6b-45e1-8081-abbc674d39c2
 # ╟─4319fd0e-fd9f-424e-9286-3b3b5a844b73
 # ╟─5bf90248-6ad6-4851-9c56-613d69f83d4b
-# ╟─1343fbae-0ebd-4237-8273-0ebab8325424
+# ╠═1343fbae-0ebd-4237-8273-0ebab8325424
 # ╟─8c211620-d632-4f23-85f5-a702faf82270
