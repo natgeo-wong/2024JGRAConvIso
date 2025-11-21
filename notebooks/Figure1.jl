@@ -157,7 +157,7 @@ begin
 	end
 
 	fig.colorbar(c1,locator=400:50:800,minorlocator=(5:0.5:15).*50,label=L"$p_\omega$ / hPa",length=0.7,rows=(1,6))
-	fig.colorbar(c2,locator=[-600,-150],label=L"$\delta_H$",ticklabels=[L"-",L"+"],rows=(7,9))
+	fig.colorbar(c2,locator=[-600,-150],label=L"$\delta_H$ (Schematic)",ticklabels=[L"-",L"+"],rows=(7,9))
 	fig.savefig(projectdir("figures","fig1-pomegaclimatology.png"),transparent=false,dpi=400)
 	load(projectdir("figures","fig1-pomegaclimatology.png"))
 end

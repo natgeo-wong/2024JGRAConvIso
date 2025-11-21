@@ -179,7 +179,7 @@ function axesformat!(axes)
 	for ax in axes
 		ax.format(
 			xlim=(-0.2,1.2),ylim=(1000,100),ylabel="Pressure / hPa",
-			xlabel=L"$\partial_p(q_h/q)$ / $\perthousand$ 10$^{-1}$ hPa$^{-1}$",
+			xlabel=L"$\partial_pq_h/\partial_pq)$ / $\perthousand$",
 			suptitle="7-Day Moving Average",
 			rightlabels=["ITCZ","CrossITCZ","PAC2ATL"]
 		)
