@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.10
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -151,11 +151,14 @@ begin
 		axs[1].plot(ilon.+360,ilat,c="blue3")
 	end
 	
-	axs[1].plot([275,275,278,278,275],[8,10.5,10.5,8,8],lw=1,c="k",linestyle="--")
+	axs[1].plot(
+		[275,275,278,278,275],[7.75,10.5,10.5,7.75,7.75],
+		lw=1,c="k",linestyle="--"
+	)
 	axs[1].scatter(infody[:,2],infody[:,3],zorder=4,c="pink",s=15)
 	axs[1].scatter(infocr[:,2],infocr[:,3],zorder=4,c="red",s=15)
-	axs[1].plot([275,288],[10.5,15],lw=1,c="k",linestyle=":")
-	axs[1].plot([278,295],[8,9.03],lw=1,c="k",linestyle=":")
+	axs[1].plot([275,288.2],[10.5,15.4],lw=1,c="k",linestyle=":")
+	axs[1].plot([278,295],[7.75,9.03],lw=1,c="k",linestyle=":")
 	axs[1].plot(lon_d02.+360,lat_d02,lw=5,c="k")
 
 	axs[1].text(273.5,11,"Liberia",c="k",size=8,bbox=textdict)
@@ -171,7 +174,7 @@ begin
 		grid=true,gridcolor="w",#suptitle="Available Colombia Stations",
 	)
 
-	ix = fig.add_axes([0.635,0.632,0.21,0.30])
+	ix = fig.add_axes([0.635,0.635,0.21,0.32])
 	c = ix.pcolormesh(
 		lsd_sml.lon,lsd_sml.lat,lsd_sml.z'/1000,
 		levels=lvls,cmap="bukavu",extend="both"
@@ -190,15 +193,15 @@ begin
 	ix.text(276.2,10.22,"Bataan",c="k",size=7,bbox=textdict)
 	ix.text(277,10.1,"LIMO",c="k",size=7,bbox=textdict)
 	ix.text(277,9.45,"Cahuita",c="k",size=7,bbox=textdict)
-	ix.text(275.1,8.2,"(a)",c="k",size=9)
+	ix.text(275.1,7.95,"(a)",c="k",size=9)
 	
 	ix.format(
-		xlim=(275,278),ylim=(8,10.5),xtickloc="none",ytickloc="none",
+		xlim=(275,278),ylim=(7.75,10.5),xtickloc="none",ytickloc="none",
 		xlocator=255:15:300,xminorlocator=240:5:315,xticklabels=[],
 		ylocator=-15:15:30,yminorlocator=-30:5:45,yticklabels=[]
 	)
 
-	ix = fig.add_axes([0.635,0.175,0.21,0.36])
+	ix = fig.add_axes([0.635,0.16,0.21,0.36])
 	ix.pcolormesh(
 		lsd_big.lon[1:10:end],lsd_big.lat[1:10:end],
 		lsd_big.z[1:10:end,1:10:end]'/1000,alpha=0.3,
@@ -241,8 +244,8 @@ end
 # ╟─194bb86d-a3bb-4585-ba66-067dd4488189
 # ╟─ee60cad1-0863-4974-9690-087d0c6dc06e
 # ╟─1ae33598-e283-49f7-bc8d-274b33ab12a5
-# ╟─5d6c3cd6-e406-461d-a226-20022060398d
+# ╠═5d6c3cd6-e406-461d-a226-20022060398d
 # ╟─76e35851-71a0-4b89-98bb-9a82bf34bd34
 # ╟─c38a99b6-8ffa-4be4-bbcd-bc9023b540b0
 # ╟─1a643e58-39c1-4c6b-b340-978056871b6b
-# ╟─d7755534-3565-4011-b6e3-e131991008db
+# ╠═d7755534-3565-4011-b6e3-e131991008db
