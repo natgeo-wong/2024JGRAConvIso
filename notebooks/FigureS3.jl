@@ -33,9 +33,7 @@ end
 
 # ╔═╡ a8431d46-46fe-11ec-2b8d-e39caffdabec
 md"
-# Figure 3a. Rainfall, IMERGv7 vs ERA5 vs WRF
-
-In this notebook, we explicitly compare the rainfall measured by the 3 stations we have, to GPM Rainfall data at the nearest gridpoint corresponding to these stations.
+# Figure S3. Rainfall, $p_\omega$ vs ERA5 vs WRF
 "
 
 # ╔═╡ 4579f773-e2b4-4b1f-a8c1-485341d451fc
